@@ -12,7 +12,7 @@ model = keras.models.Sequential(layers=[
     keras.layers.Dense(units=1, activation=keras.activations.sigmoid),
 ])
 
-model.compile(optimizer=keras.optimizers.SGD(), loss='mse')
+model.compile(optimizer=keras.optimizers.SGD(), loss=keras.losses.mean_squared_error)
 
 model.fit(sin_input, sin_output, epochs=10)
 
