@@ -52,16 +52,12 @@ def create_model(params, input_dim):
 
 def hypermin(space_, to_model, x, y, x_val, y_val, **kwargs):
     print("x.shape=" + str(x.shape))
+
     def f_nn(params):
         model = to_model(params, input_dim=x.shape[1])
         model.fit(x, y, epochs=params['epochs'], **kwargs)
 
         loss = model.evaluate(x=x_val, y=y_val)
-        # pred_auc = model.predict_proba(x_val)
-        # auc = roc_auc_score(y_val, pred_auc)
-        # loss = -auc
-        print('cross-val loss:', loss)
-        sys.stdout.flush()
         return {'loss': loss, 'status': STATUS_OK}
 
     trials = Trials()
