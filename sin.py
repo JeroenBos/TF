@@ -17,11 +17,11 @@ sin_output = np.array([sin(x) for x in sin_input])
 space = {'choice': hp.choice('num_layers',
                              [{'layers': 'two', },
                               {'layers': 'three',
-                               'units3': hp.uniform('units3', 1, 2), }
+                               'units3': hp.quniform('units3', 1, 2, 1), }
                               ]),
 
-         'units1': hp.uniform('units1', 1, 2),
-         'units2': hp.uniform('units2', 1, 2),
+         'units1': hp.quniform('units1', 1, 5, 1),
+         'units2': hp.quniform('units2', 1, 2, 1),
 
          'epochs': 100,
          'optimizer': hp.choice('optimizer', [SGD()]),
@@ -32,9 +32,6 @@ space = {'choice': hp.choice('num_layers',
 
 def create_model(params, input_dim):
     to_int(params, 'units1')
-    to_int(params, 'units2')
-    to_int(params, 'units3', 'choice')
-
     print('Params testing: ', params)
     model = Sequential()
     model.add(Dense(units=params['units1'], input_dim=input_dim))
@@ -76,7 +73,7 @@ def to_int(params, key, *args):
             return
         params = params[arg]
     if key in params:
-        params[key] = int(round(params[key], 0))
+        params[key] = int(params[key])
     else:
         return
 
