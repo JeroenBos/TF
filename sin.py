@@ -1,4 +1,5 @@
 from math import sin, pi
+import tensorflow as tf
 import keras
 
 INPUT_SIZE = 10
@@ -14,5 +15,6 @@ model = keras.models.Sequential(layers=[
 
 model.compile(optimizer=keras.optimizers.SGD(), loss=keras.losses.mean_squared_error)
 
-model.fit(sin_input, sin_output, epochs=10)
+model.fit(sin_input, sin_output, epochs=1000,
+          callbacks=[keras.callbacks.TensorBoard()])
 
