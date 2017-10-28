@@ -12,7 +12,7 @@ def hypermin(space_, to_model, x, y, x_val, y_val, **kwargs):
         return {'loss': loss, 'status': STATUS_OK}
 
     trials = Trials()
-    best = fmin(f_nn, space_, algo=tpe.suggest, max_evals=50,trials=trials)
+    best = fmin(f_nn, space_, algo=tpe.suggest, max_evals=50, trials=trials)
     print('best: ' + str(best))
 
 

@@ -15,11 +15,9 @@ sin_input = np.array([[i * DOMAIN_MAX / INPUT_SIZE] for i in range(INPUT_SIZE)])
 sin_output = np.array([sin(x) for x in sin_input])
 
 space = {'choice': hp.choice('num_layers',
-                             [{'layers': 'two',
-                               'units2': 1},
-                              {'layers': 'three',
-                               'units2': hp.quniform('units2', 1, 5, 1),
-                               'units3': 1}
+                             [{'layers': 'two', 'units2': 1},
+                              {'layers': 'three', 'units2': hp.quniform('units2', 1, 5, 1),
+                                                  'units3': 1}
                               ]),
 
          'units1': hp.quniform('units1', 1, 5, 1),
