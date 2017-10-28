@@ -7,7 +7,9 @@ from keras.layers import Dense, Activation
 from keras.optimizers import SGD
 from hypermin import *
 from hyperopt import hp
+import persistence
 
+directory = "D:\\"
 INPUT_SIZE = 10
 DOMAIN_MAX = 2 * pi
 
@@ -33,6 +35,12 @@ def create_model(params, input_dim):
     to_int(params, 'units1')
     to_int(params, 'units2', 'choice')
     print('Params testing: ', params)
+
+    model = persistence.try_find(params, directory)
+    if model:
+        print('model loaded')
+        return model
+
     model = Sequential()
     model.add(Dense(units=params['units1'], input_dim=input_dim))
     model.add(Activation(params['activation']))
@@ -50,4 +58,5 @@ def create_model(params, input_dim):
 
 hypermin(space, create_model, sin_input, sin_output, sin_input, sin_output,
          verbose=0,
-         callbacks=[keras.callbacks.TensorBoard()])
+         callbacks=[keras.callbacks.TensorBoard(directory),
+                    persistence.Save(directory)])
