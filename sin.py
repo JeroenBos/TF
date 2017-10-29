@@ -46,11 +46,11 @@ def create_model(params, input_dim):
     model.add(Dense(units=params['units1'], input_dim=input_dim))
     model.add(Activation(params['activation']))
 
-    model.add(Dense(units=params['choice']['units2']))
-    model.add(Activation(params['activation'] if params['choice']['num_layers'] == 3 else keras.activations.tanh))
+    model.add(Dense(units=params['units2']))
+    model.add(Activation(params['activation'] if params['num_layers'] == 3 else keras.activations.tanh))
 
-    if params['choice']['num_layers'] == 3:
-        model.add(Dense(units=params['choice']['units3']))
+    if params['num_layers'] == 3:
+        model.add(Dense(units=params['units3']))
         model.add(Activation(keras.activations.tanh))
 
     model.compile(optimizer=params['optimizer'], loss=params['loss'])

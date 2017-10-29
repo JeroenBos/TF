@@ -5,6 +5,7 @@ def hypermin(space_, to_model, x, y, x_val, y_val, **kwargs):
     print("x.shape=" + str(x.shape))
 
     def f_nn(params):
+        _flatten(params)
         model = to_model(params, input_dim=x.shape[1])
         model.fit(x, y, epochs=params['epochs'], **kwargs)
 
@@ -14,4 +15,14 @@ def hypermin(space_, to_model, x, y, x_val, y_val, **kwargs):
     trials = Trials()
     best = fmin(f_nn, space_, algo=tpe.suggest, max_evals=50, trials=trials)
     print('best: ' + str(best))
+
+
+def _flatten(params):
+    subdicts = [(key, param) for key, param in params.items() if isinstance(param, dict)]
+    for (key, subdict) in subdicts:
+        del params[key]
+        for subkey, value in subdict.items():
+            params[subkey] = value
+
+
 
