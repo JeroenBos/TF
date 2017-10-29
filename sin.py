@@ -1,6 +1,4 @@
 from math import sin, pi
-import matplotlib
-matplotlib.use("Qt5agg")
 import tensorflow as tf
 import numpy as np
 import keras
