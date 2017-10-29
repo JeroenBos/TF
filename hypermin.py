@@ -12,7 +12,7 @@ def hypermin(space, to_model, x, y, x_val, y_val, **kwargs):
 
         class SetLossCallBack(keras.callbacks.Callback):
             def on_train_end(self, logs=None):
-                self.model.hploss = model.evaluate(x=x_val, y=y_val)
+                self.model.hploss = self.model.evaluate(x=x_val, y=y_val)
 
         kwargs['callbacks'] = _prepend(kwargs['callbacks'] or [], SetLossCallBack())
         model.fit(x, y, epochs=params['epochs'], **kwargs)
