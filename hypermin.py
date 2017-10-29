@@ -1,5 +1,6 @@
 import sys
 from hyperopt import fmin, tpe, STATUS_OK, Trials
+import keras
 
 
 def hypermin(space, to_model, x, y, x_val, y_val, **kwargs):
@@ -8,10 +9,15 @@ def hypermin(space, to_model, x, y, x_val, y_val, **kwargs):
     def f_nn(params):
         _flatten(params)
         model = to_model(params, input_dim=x.shape[1])
-        model.fit(x, y, epochs=params['epochs'], **kwargs)
-        model.loss = model.evaluate(x=x_val, y=y_val)
 
-        return {'loss': model.loss, 'status': STATUS_OK}
+        class SetLossCallBack(keras.callbacks.Callback):
+            def on_train_end(self, logs=None):
+                self.model.hploss = model.evaluate(x=x_val, y=y_val)
+
+        kwargs['callbacks'] = _prepend(kwargs['callbacks'] or [], SetLossCallBack())
+        model.fit(x, y, epochs=params['epochs'], **kwargs)
+
+        return {'loss': model.hploss, 'status': STATUS_OK}
 
     trials = Trials()
     fmin(f_nn, space, algo=tpe.suggest, max_evals=sys.maxsize, trials=trials)
@@ -25,4 +31,6 @@ def _flatten(params):
             params[subkey] = value
 
 
-
+def _prepend(list_, item):
+    list_.insert(0, item)
+    return list_
