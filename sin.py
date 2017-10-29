@@ -13,7 +13,7 @@ from Visualization import OneDValidationContinuousPlotCallback
 from persistence import TensorBoardSummaryScalars
 
 
-directory = "D:\\TFlogs\\"
+LOG_DIRECTORY = "D:\\TFlogs\\"
 INPUT_SIZE = 100
 DOMAIN_MAX = 2*pi
 
@@ -28,7 +28,7 @@ space = {'choice': hp.choice('num_layers',
 
          'units1': 50 * scope.int(hp.quniform('units1', 1, 10, 1)),
 
-         'epochs': 10,
+         'epochs': 1000,
          'learning_rate': hp.choice('learning_rate', [0.1, 0.2]),
          'activation': keras.activations.tanh,
          'loss': keras.losses.mean_squared_error
@@ -38,7 +38,7 @@ space = {'choice': hp.choice('num_layers',
 def create_model(params, input_dim):
     persistence.print_param_names(params)
 
-    model = persistence.try_find(params, directory)
+    model = persistence.try_find(params, LOG_DIRECTORY)
     if model:
         print('model loaded')
         model.parameters = params
@@ -61,9 +61,9 @@ def create_model(params, input_dim):
 
 
 if __name__ == '__main__':
-    callbacks = [TensorBoardSummaryScalars(directory, {'learning_rate': lambda model: model.optimizer.lr}),
-                 keras.callbacks.TensorBoard(directory),
-                 persistence.Save(directory),
+    callbacks = [TensorBoardSummaryScalars(LOG_DIRECTORY, {'learning_rate': lambda model: model.optimizer.lr}),
+                 keras.callbacks.TensorBoard(LOG_DIRECTORY),
+                 persistence.Save(LOG_DIRECTORY),
                  OneDValidationContinuousPlotCallback(sin_input, sin_output)
                  ]
     hypermin(space, create_model, sin_input, sin_output, sin_input, sin_output, verbose=0, callbacks=callbacks)
