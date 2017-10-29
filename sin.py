@@ -11,7 +11,7 @@ from hyperopt.pyll import scope
 import persistence
 
 directory = "D:\\TFlogs\\"
-INPUT_SIZE = 10
+INPUT_SIZE = 1000
 DOMAIN_MAX = 2 * pi
 
 sin_input = np.array([[i * DOMAIN_MAX / INPUT_SIZE] for i in range(INPUT_SIZE)])
@@ -19,13 +19,13 @@ sin_output = np.array([sin(x) for x in sin_input])
 
 space = {'choice': hp.choice('num_layers',
                              [{'num_layers': 2, 'units2': 1},
-                              {'num_layers': 3, 'units2': 5 * scope.int(hp.quniform('units2', 1, 10, 1)),
+                              {'num_layers': 3, 'units2': 20 * scope.int(hp.quniform('units2', 1, 10, 1)),
                                                 'units3': 1}
                               ]),
 
-         'units1': 5 * scope.int(hp.quniform('units1', 1, 10, 1)),
+         'units1': 20 * scope.int(hp.quniform('units1', 1, 10, 1)),
 
-         'epochs': 100,
+         'epochs': 1000,
          'optimizer': hp.choice('optimizer', [SGD()]),
          'activation': keras.activations.sigmoid,
          'loss': keras.losses.mean_squared_error
