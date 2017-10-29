@@ -5,6 +5,7 @@ import keras
 from keras.models import Sequential
 from keras.layers import Dense, Activation
 from keras.optimizers import SGD
+from keras.callbacks import ReduceLROnPlateau
 from hypermin import *
 from hyperopt import hp
 from hyperopt.pyll import scope
@@ -64,7 +65,8 @@ if __name__ == '__main__':
     callbacks = [TensorBoardSummaryScalars(LOG_DIRECTORY, {'learning_rate': lambda model: model.optimizer.lr}),
                  keras.callbacks.TensorBoard(LOG_DIRECTORY),
                  persistence.Save(LOG_DIRECTORY),
-                 OneDValidationContinuousPlotCallback(sin_input, sin_output)
+                 OneDValidationContinuousPlotCallback(sin_input, sin_output),
+                 ReduceLROnPlateau('loss')
                  ]
     hypermin(space, create_model, sin_input, sin_output, sin_input, sin_output, verbose=0, callbacks=callbacks)
 
