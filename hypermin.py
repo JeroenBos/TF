@@ -9,9 +9,9 @@ def hypermin(space, to_model, x, y, x_val, y_val, **kwargs):
         _flatten(params)
         model = to_model(params, input_dim=x.shape[1])
         model.fit(x, y, epochs=params['epochs'], **kwargs)
+        model.loss = model.evaluate(x=x_val, y=y_val)
 
-        loss = model.evaluate(x=x_val, y=y_val)
-        return {'loss': loss, 'status': STATUS_OK}
+        return {'loss': model.loss, 'status': STATUS_OK}
 
     trials = Trials()
     fmin(f_nn, space, algo=tpe.suggest, max_evals=sys.maxsize, trials=trials)
