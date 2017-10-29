@@ -61,13 +61,12 @@ def create_model(params, input_dim):
 
 
 if __name__ == '__main__':
-    hypermin(space, create_model, sin_input, sin_output, sin_input, sin_output,
-             verbose=0,
-             callbacks=[TensorBoardSummaryScalars(directory, {'learning_rate': lambda model: model.optimizer.lr}),
-                        keras.callbacks.TensorBoard(directory),
-                        persistence.Save(directory),
-                        OneDValidationContinuousPlotCallback(sin_input, sin_output)
-                        ])
+    callbacks = [TensorBoardSummaryScalars(directory, {'learning_rate': lambda model: model.optimizer.lr}),
+                 keras.callbacks.TensorBoard(directory),
+                 persistence.Save(directory),
+                 OneDValidationContinuousPlotCallback(sin_input, sin_output)
+                 ]
+    hypermin(space, create_model, sin_input, sin_output, sin_input, sin_output, verbose=0, callbacks=callbacks)
 
 
 
