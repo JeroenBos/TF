@@ -12,8 +12,8 @@ import persistence
 from Visualization import OneDValidationPlotCallback
 
 directory = "D:\\TFlogs\\"
-INPUT_SIZE = 1000
-DOMAIN_MAX = 2 * pi
+INPUT_SIZE = 100
+DOMAIN_MAX =5*pi
 
 sin_input = np.array([[i * DOMAIN_MAX / INPUT_SIZE] for i in range(INPUT_SIZE)])
 sin_output = np.array([sin(x) for x in sin_input])
@@ -26,9 +26,9 @@ space = {'choice': hp.choice('num_layers',
 
          'units1': 50 * scope.int(hp.quniform('units1', 1, 10, 1)),
 
-         'epochs': 10,
-         'optimizer': hp.choice('optimizer', [SGD()]),
-         'activation': keras.activations.sigmoid,
+         'epochs': 10000,
+         'learning_rate': hp.choice('learning_rate', [0.1, 0.2]),
+         'activation': keras.activations.tanh,
          'loss': keras.losses.mean_squared_error
          }
 
@@ -54,7 +54,7 @@ def create_model(params, input_dim):
         model.add(Dense(units=params['units3']))
         model.add(Activation(keras.activations.tanh))
 
-    model.compile(optimizer=params['optimizer'], loss=params['loss'])
+    model.compile(optimizer=SGD(params['learning_rate']), loss=params['loss'])
     return model
 
 
