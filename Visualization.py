@@ -1,7 +1,10 @@
 import multiprocessing
 import queue
+import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import keras
+import numpy as np
+from PushFuncAnimation import PushFuncAnimation
 
 q = None
 refresh_rate = 0.5  # in seconds
@@ -30,26 +33,35 @@ def _worker(local_queue):
                 worker(**kwargs)
                 local_queue.task_done()
         # on empty or non-empty queue: yield control back to the plot
-        plt.pause(refresh_rate)
+        # plt.pause(refresh_rate)
 
 
 def plot(worker, **kwargs):
     assert callable(worker)
-    enqueue(_Wrapper(worker).do, **kwargs)
+    enqueue(_Wrapper(worker).update_artists, **kwargs)
 
 
 class _Wrapper:  # this class makes the function 'do' pickable
     def __init__(self, worker):
         self.__worker = worker
+        self.__ani = None
 
-    def do(self, **kwargs):
-        plt.ion()
+    def update_artists(self, **kwargs):
+        new_artists = self.__worker(**kwargs)
+        if not new_artists:
+            raise Exception("artists must be returned")
+
+        if not self.__ani:  # i.e. these are the first artists
+            self.__ani = self.init_animation()
+
+        self.__ani.update(new_artists)
+
+    def init_animation(self):
+        fig, ax = plt.subplots()
+        ani = PushFuncAnimation(fig, self.__worker)
         plt.show()
-        plt.clf()
+        return ani
 
-        self.__worker(**kwargs)
-
-        plt.draw()
 
 
 class PlotCallback(keras.callbacks.Callback):
@@ -75,17 +87,32 @@ class OneDValidationPlotCallback(PlotCallback):
     def __init__(self, x_val, y_val, select_new_model_predicate=None):
         self.__x_val = x_val
         self.__y_val = y_val
+        self.__scat1 = None
+        self.__scat2 = None
         super().__init__(self.plot, self.get_plot_args, select_new_model_predicate)
 
     def get_plot_args(self):
+        if not self.__scat1:
+            self.init_scats()
+
         return {'x_val': self.__x_val,
                 'y_val': self.__y_val,
-                'predictions': self.selected_model.predict(self.__x_val)}
+                'predictions': self.selected_model.predict(self.__x_val),
+                'scat1': self.__scat1,
+                'scat2': self.__scat2 }
+
+
+    def init_scats(self):
+        self.__scat1 = plt.scatter(self.__x_val, self.selected_model.predict(self.__x_val))
+        self.__scat2 = plt.scatter(self.__x_val, self.__y_val)
+        return (self.__scat1, self.__scat2)
+
 
     @staticmethod
-    def plot(x_val, y_val, predictions):
-        plt.scatter(x_val, predictions)
-        plt.scatter(x_val, y_val)
+    def plot(scat1, scat2, x_val, y_val, predictions):
+        scat1.set_offsets(np.c_[x_val, predictions])
+        scat2.set_offsets(np.c_[x_val, y_val])
+        return (scat1, scat2)
 
 
 class OneDValidationContinuousPlotCallback(OneDValidationPlotCallback):
