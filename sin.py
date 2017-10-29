@@ -57,7 +57,8 @@ def create_model(params, input_dim):
     return model
 
 
-hypermin(space, create_model, sin_input, sin_output, sin_input, sin_output,
-         verbose=0,
-         callbacks=[keras.callbacks.TensorBoard(directory),
-                    persistence.Save(directory)])
+if __name__ == '__main__':
+    hypermin(space, create_model, sin_input, sin_output, sin_input, sin_output,
+             verbose=0,
+             callbacks=[keras.callbacks.TensorBoard(directory),
+                        persistence.Save(directory)])
