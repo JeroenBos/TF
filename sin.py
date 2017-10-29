@@ -19,11 +19,11 @@ sin_output = np.array([sin(x) for x in sin_input])
 
 space = {'choice': hp.choice('num_layers',
                              [{'num_layers': 2, 'units2': 1},
-                              {'num_layers': 3, 'units2': scope.int(hp.quniform('units2', 1, 3, 1)),
+                              {'num_layers': 3, 'units2': 5 * scope.int(hp.quniform('units2', 1, 10, 1)),
                                                 'units3': 1}
                               ]),
 
-         'units1': scope.int(hp.quniform('units1', 1, 3, 1)),
+         'units1': 5 * scope.int(hp.quniform('units1', 1, 10, 1)),
 
          'epochs': 100,
          'optimizer': hp.choice('optimizer', [SGD()]),
