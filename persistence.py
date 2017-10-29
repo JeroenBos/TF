@@ -1,6 +1,7 @@
 import types
 import keras
 import os
+import tensorflow as tf
 
 # list of modules from which try to find the names of parameters (for file names when saving/loading)
 _modules = [keras.optimizers, keras.activations, keras.losses]
@@ -58,3 +59,29 @@ class Save(keras.callbacks.Callback):
     def save(self):
         path = os.path.join(self.directory, get_filename(self.model.parameters))
         self.model.save(path)
+
+
+class TensorBoardSummaryScalars(keras.callbacks.Callback):
+    def __init__(self, log_dir, scalars):
+        """scalars: a dict of strings(tags) and functions taking a model and returning a tensor """
+        super().__init__()
+        self.log_dir = log_dir
+        self.scalars = scalars
+        self.writer = tf.summary.FileWriter(self.log_dir)
+
+    def on_train_begin(self, logs=None):
+        for tag, get_tensor in self.scalars.items():
+            tensor = get_tensor(self.model)
+            self.model.metrics_tensors.append(tensor)
+            self.model.metrics_names.append(tag)
+            with tf.name_scope(tag):
+                tf.summary.scalar(tag, tensor)
+
+    def on_batch_end(self, batch, logs=None):
+        for tag in self.scalars.keys():
+            if tag in logs:
+                summary = tf.Summary()
+                summary_value = summary.value.add()
+                summary_value.tag = tag
+                summary_value.simple_value = logs[tag]
+                self.writer.add_summary(summary)

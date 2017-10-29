@@ -10,6 +10,8 @@ from hyperopt import hp
 from hyperopt.pyll import scope
 import persistence
 from Visualization import OneDValidationContinuousPlotCallback
+from persistence import TensorBoardSummaryScalars
+
 
 directory = "D:\\TFlogs\\"
 INPUT_SIZE = 100
@@ -26,7 +28,7 @@ space = {'choice': hp.choice('num_layers',
 
          'units1': 50 * scope.int(hp.quniform('units1', 1, 10, 1)),
 
-         'epochs': 100000,
+         'epochs': 10,
          'learning_rate': hp.choice('learning_rate', [0.1, 0.2]),
          'activation': keras.activations.tanh,
          'loss': keras.losses.mean_squared_error
@@ -61,6 +63,12 @@ def create_model(params, input_dim):
 if __name__ == '__main__':
     hypermin(space, create_model, sin_input, sin_output, sin_input, sin_output,
              verbose=0,
-             callbacks=[keras.callbacks.TensorBoard(directory),
+             callbacks=[TensorBoardSummaryScalars(directory, {'learning_rate': lambda model: model.optimizer.lr}),
+                        keras.callbacks.TensorBoard(directory),
                         persistence.Save(directory),
-                        OneDValidationContinuousPlotCallback(sin_input, sin_output)])
+                        OneDValidationContinuousPlotCallback(sin_input, sin_output)
+                        ])
+
+
+
+

@@ -17,7 +17,7 @@ def hypermin(space, to_model, x, y, x_val, y_val, **kwargs):
         kwargs['callbacks'] = _prepend(kwargs['callbacks'] or [], SetLossCallBack())
         model.fit(x, y, epochs=params['epochs'], **kwargs)
 
-        return {'loss': model.hploss, 'status': STATUS_OK}
+        return {'loss': model.hploss[0] if isinstance(model.hploss, list) else model.hploss, 'status': STATUS_OK}
 
     trials = Trials()
     fmin(f_nn, space, algo=tpe.suggest, max_evals=sys.maxsize, trials=trials)
