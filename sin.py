@@ -9,11 +9,11 @@ from hypermin import *
 from hyperopt import hp
 from hyperopt.pyll import scope
 import persistence
-from Visualization import OneDValidationPlotCallback
+from Visualization import OneDValidationContinuousPlotCallback
 
 directory = "D:\\TFlogs\\"
 INPUT_SIZE = 100
-DOMAIN_MAX =5*pi
+DOMAIN_MAX = 2*pi
 
 sin_input = np.array([[i * DOMAIN_MAX / INPUT_SIZE] for i in range(INPUT_SIZE)])
 sin_output = np.array([sin(x) for x in sin_input])
@@ -26,7 +26,7 @@ space = {'choice': hp.choice('num_layers',
 
          'units1': 50 * scope.int(hp.quniform('units1', 1, 10, 1)),
 
-         'epochs': 10000,
+         'epochs': 100000,
          'learning_rate': hp.choice('learning_rate', [0.1, 0.2]),
          'activation': keras.activations.tanh,
          'loss': keras.losses.mean_squared_error
@@ -63,4 +63,4 @@ if __name__ == '__main__':
              verbose=0,
              callbacks=[keras.callbacks.TensorBoard(directory),
                         persistence.Save(directory),
-                        OneDValidationPlotCallback(sin_input, sin_output)])
+                        OneDValidationContinuousPlotCallback(sin_input, sin_output)])

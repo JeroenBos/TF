@@ -61,6 +61,9 @@ class PlotCallback(keras.callbacks.Callback):
         self.__get_plot_worker_args = get_plot_worker_args
 
     def on_train_end(self, logs=None):
+        self.update()
+
+    def update(self):
         if not self.selected_model or self.__select_new_model_predicate(self.model, self.selected_model):
             self.selected_model = self.model
 
@@ -69,10 +72,10 @@ class PlotCallback(keras.callbacks.Callback):
 
 
 class OneDValidationPlotCallback(PlotCallback):
-    def __init__(self, x_val, y_val):
+    def __init__(self, x_val, y_val, select_new_model_predicate=None):
         self.__x_val = x_val
         self.__y_val = y_val
-        super().__init__(self.plot, self.get_plot_args)
+        super().__init__(self.plot, self.get_plot_args, select_new_model_predicate)
 
     def get_plot_args(self):
         return {'x_val': self.__x_val,
@@ -83,3 +86,12 @@ class OneDValidationPlotCallback(PlotCallback):
     def plot(x_val, y_val, predictions):
         plt.scatter(x_val, predictions)
         plt.scatter(x_val, y_val)
+
+
+class OneDValidationContinuousPlotCallback(OneDValidationPlotCallback):
+    def __init__(self, x_val, y_val):
+        super().__init__(x_val, y_val, lambda *args: True)
+
+    def on_epoch_end(self, epoch, logs=None):
+        if epoch % 10 == 0:
+            self.update()
