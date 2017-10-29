@@ -15,13 +15,3 @@ def hypermin(space_, to_model, x, y, x_val, y_val, **kwargs):
     best = fmin(f_nn, space_, algo=tpe.suggest, max_evals=50, trials=trials)
     print('best: ' + str(best))
 
-
-def to_int(params, key, *args):
-    for arg in args:
-        if arg not in params:
-            return
-        params = params[arg]
-    if key in params:
-        params[key] = int(params[key])
-    else:
-        return

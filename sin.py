@@ -7,9 +7,10 @@ from keras.layers import Dense, Activation
 from keras.optimizers import SGD
 from hypermin import *
 from hyperopt import hp
+from hyperopt.pyll import scope
 import persistence
 
-directory = "D:\\TF\\"
+directory = "D:\\TFlogs\\"
 INPUT_SIZE = 10
 DOMAIN_MAX = 2 * pi
 
@@ -18,11 +19,11 @@ sin_output = np.array([sin(x) for x in sin_input])
 
 space = {'choice': hp.choice('num_layers',
                              [{'layers': 'two', 'units2': 1},
-                              {'layers': 'three', 'units2': hp.quniform('units2', 1, 5, 1),
+                              {'layers': 'three', 'units2': 5 * scope.int(hp.quniform('units2', 1, 3, 1)),
                                                   'units3': 1}
                               ]),
 
-         'units1': hp.quniform('units1', 1, 5, 1),
+         'units1': 5 * scope.int(hp.quniform('units1', 1, 3, 1)),
 
          'epochs': 100,
          'optimizer': hp.choice('optimizer', [SGD()]),
@@ -32,8 +33,6 @@ space = {'choice': hp.choice('num_layers',
 
 
 def create_model(params, input_dim):
-    to_int(params, 'units1')
-    to_int(params, 'units2', 'choice')
     persistence.print_param_names(params)
 
     model = persistence.try_find(params, directory)
