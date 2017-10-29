@@ -34,7 +34,7 @@ space = {'choice': hp.choice('num_layers',
 def create_model(params, input_dim):
     to_int(params, 'units1')
     to_int(params, 'units2', 'choice')
-    print('Params testing: ', params)
+    persistence.print_param_names(params)
 
     model = persistence.try_find(params, directory)
     if model:

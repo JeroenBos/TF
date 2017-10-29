@@ -36,6 +36,12 @@ def _get_filenamepart(params):
             yield str(key) + '=' + get_name(param)
 
 
+def print_param_names(params):
+    print()
+    for line in sorted(_get_filenamepart(params)):
+        print(line)
+
+
 class Save(keras.callbacks.Callback):
     def __init__(self, directory):
         super().__init__()
