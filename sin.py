@@ -18,12 +18,12 @@ sin_input = np.array([[i * DOMAIN_MAX / INPUT_SIZE] for i in range(INPUT_SIZE)])
 sin_output = np.array([sin(x) for x in sin_input])
 
 space = {'choice': hp.choice('num_layers',
-                             [{'layers': 'two', 'units2': 1},
-                              {'layers': 'three', 'units2': 5 * scope.int(hp.quniform('units2', 1, 3, 1)),
-                                                  'units3': 1}
+                             [{'num_layers': 2, 'units2': 1},
+                              {'num_layers': 3, 'units2': scope.int(hp.quniform('units2', 1, 3, 1)),
+                                                'units3': 1}
                               ]),
 
-         'units1': 5 * scope.int(hp.quniform('units1', 1, 3, 1)),
+         'units1': scope.int(hp.quniform('units1', 1, 3, 1)),
 
          'epochs': 100,
          'optimizer': hp.choice('optimizer', [SGD()]),
@@ -46,12 +46,12 @@ def create_model(params, input_dim):
     model.add(Dense(units=params['units1'], input_dim=input_dim))
     model.add(Activation(params['activation']))
 
-    model.add(Dense(units=1))
-    model.add(Activation(params['activation']))
+    model.add(Dense(units=params['choice']['units2']))
+    model.add(Activation(params['activation'] if params['choice']['num_layers'] == 3 else keras.activations.tanh))
 
-    if params['choice']['layers'] == 'three':
-        model.add(Dense(units=1))
-        model.add(Activation(params['activation']))
+    if params['choice']['num_layers'] == 3:
+        model.add(Dense(units=params['choice']['units3']))
+        model.add(Activation(keras.activations.tanh))
 
     model.compile(optimizer=params['optimizer'], loss=params['loss'])
     return model
