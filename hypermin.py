@@ -14,7 +14,7 @@ def hypermin(space, to_model, x, y, x_val, y_val, **kwargs):
             def on_train_end(self, logs=None):
                 self.model.hploss = self.model.evaluate(x=x_val, y=y_val)
 
-        kwargs['callbacks'] = _prepend(kwargs['callbacks'] or [], SetLossCallBack())
+        kwargs['callbacks'] = [SetLossCallBack()] + (kwargs['callbacks'] or [])
         model.fit(x, y, epochs=params['epochs'], **kwargs)
 
         return {'loss': model.hploss[0] if isinstance(model.hploss, list) else model.hploss, 'status': STATUS_OK}
@@ -30,7 +30,3 @@ def _flatten(params):
         for subkey, value in subdict.items():
             params[subkey] = value
 
-
-def _prepend(list_, item):
-    list_.insert(0, item)
-    return list_
