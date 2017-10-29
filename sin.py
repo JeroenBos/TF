@@ -9,7 +9,7 @@ from hypermin import *
 from hyperopt import hp
 import persistence
 
-directory = "D:\\"
+directory = "D:\\TF\\"
 INPUT_SIZE = 10
 DOMAIN_MAX = 2 * pi
 
@@ -39,9 +39,11 @@ def create_model(params, input_dim):
     model = persistence.try_find(params, directory)
     if model:
         print('model loaded')
+        model.parameters = params
         return model
 
     model = Sequential()
+    model.parameters = params
     model.add(Dense(units=params['units1'], input_dim=input_dim))
     model.add(Activation(params['activation']))
 

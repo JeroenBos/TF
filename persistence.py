@@ -1,6 +1,5 @@
 import types
 import keras
-import datetime
 import os
 
 _modules = [keras.optimizers, keras.activations, keras.losses]
@@ -8,11 +7,15 @@ _modules = [keras.optimizers, keras.activations, keras.losses]
 
 def get_name(parameter):
     """ Gets the name of the parameter, by mapping the function or type back to its name. """
-    if isinstance(parameter, (types.FunctionType, type)):
+    if isinstance(parameter, str):
+        return '\'' + str(parameter) + '\''
+    elif isinstance(parameter, (types.FunctionType, type)):
         type_or_module = next(m for m in _modules if hasattr(m, parameter.__name__))
         return type_or_module.__name__ + '.' + parameter.__name__
-    else:
+    elif 'object at 0x' not in str(parameter):
         return str(parameter)
+    else:
+        return type(parameter).__name__
 
 
 def try_find(params, directory):
@@ -21,7 +24,16 @@ def try_find(params, directory):
 
 
 def get_filename(params):
-    return "a.hdf5"  # return datetime.datetime.now().strftime('%H:%M:%S') + '.hdf5'
+    return ",".join(_get_filenamepart(params)) + '.hdf5'
+
+
+def _get_filenamepart(params):
+    for (key, param) in params.items():
+        if isinstance(param, dict):
+            for part in _get_filenamepart(param):
+                yield part
+        else:
+            yield str(key) + '=' + get_name(param)
 
 
 class Save(keras.callbacks.Callback):
@@ -33,7 +45,5 @@ class Save(keras.callbacks.Callback):
         self.save()
 
     def save(self):
-        path = os.path.join(self.directory, get_filename(self.params)) # TODO: I don't know what these params are actually
+        path = os.path.join(self.directory, get_filename(self.model.parameters))
         self.model.save(path)
-
-
