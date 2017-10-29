@@ -29,7 +29,7 @@ space = {'choice': hp.choice('num_layers',
 
          'units1': 50 * scope.int(hp.quniform('units1', 1, 10, 1)),
 
-         'epochs': 1000,
+         'epochs': 100,
          'learning_rate': hp.choice('learning_rate', [0.1, 0.2]),
          'activation': keras.activations.tanh,
          'loss': keras.losses.mean_squared_error
@@ -65,8 +65,8 @@ if __name__ == '__main__':
     callbacks = [TensorBoardSummaryScalars(LOG_DIRECTORY, {'learning_rate': lambda model: model.optimizer.lr}),
                  keras.callbacks.TensorBoard(LOG_DIRECTORY),
                  persistence.Save(LOG_DIRECTORY),
-                 OneDValidationContinuousPlotCallback(sin_input, sin_output),
-                 ReduceLROnPlateau('loss')
+ #                OneDValidationContinuousPlotCallback(sin_input, sin_output),
+                 ReduceLROnPlateau('loss', patience=5, factor=0.8)
                  ]
     hypermin(space, create_model, sin_input, sin_output, sin_input, sin_output, verbose=0, callbacks=callbacks)
 

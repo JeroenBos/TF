@@ -72,16 +72,17 @@ class TensorBoardSummaryScalars(keras.callbacks.Callback):
     def on_train_begin(self, logs=None):
         for tag, get_tensor in self.scalars.items():
             tensor = get_tensor(self.model)
-            self.model.metrics_tensors.append(tensor)
-            self.model.metrics_names.append(tag)
             with tf.name_scope(tag):
                 tf.summary.scalar(tag, tensor)
 
     def on_batch_end(self, batch, logs=None):
-        for tag in self.scalars.keys():
-            if tag in logs:
-                summary = tf.Summary()
-                summary_value = summary.value.add()
-                summary_value.tag = tag
-                summary_value.simple_value = logs[tag]
-                self.writer.add_summary(summary)
+        from keras import backend as K
+        for tag, get_tensor in self.scalars.items():
+            tensor = get_tensor(self.model)
+            val = tensor.eval(K.get_session())
+            summary = tf.Summary()
+            summary_value = summary.value.add()
+            summary_value.tag = tag
+            summary_value.simple_value = val
+            self.writer.add_summary(summary)
+
