@@ -2,8 +2,8 @@ import sys
 from hyperopt import fmin, tpe, STATUS_OK, Trials
 
 
-def hypermin(space_, to_model, x, y, x_val, y_val, **kwargs):
-    print("x.shape=" + str(x.shape))
+def hypermin(space, to_model, x, y, x_val, y_val, **kwargs):
+    """Maps the hyperspace search loss to the model.fit loss for regression output"""
 
     def f_nn(params):
         _flatten(params)
@@ -14,7 +14,7 @@ def hypermin(space_, to_model, x, y, x_val, y_val, **kwargs):
         return {'loss': loss, 'status': STATUS_OK}
 
     trials = Trials()
-    fmin(f_nn, space_, algo=tpe.suggest, max_evals=sys.maxsize, trials=trials)
+    fmin(f_nn, space, algo=tpe.suggest, max_evals=sys.maxsize, trials=trials)
 
 
 def _flatten(params):

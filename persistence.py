@@ -2,6 +2,7 @@ import types
 import keras
 import os
 
+# list of modules from which try to find the names of parameters (for file names when saving/loading)
 _modules = [keras.optimizers, keras.activations, keras.losses]
 
 
@@ -19,11 +20,13 @@ def get_name(parameter):
 
 
 def try_find(params, directory):
+    """Tries to find a saved model in the specified directory that matches the specified parameters"""
     path = os.path.join(directory, get_filename(params))
     return keras.models.load_model(path) if os.path.exists(path) else None
 
 
 def get_filename(params):
+    """Gets the canonical name for the file name when saving the model constructed from the specified parameters"""
     return ",".join(_get_filenamepart(params)) + '.hdf5'
 
 
@@ -37,12 +40,14 @@ def _get_filenamepart(params):
 
 
 def print_param_names(params):
+    """Prints the specified parameters to the console"""
     print()
     for line in sorted(_get_filenamepart(params)):
         print(line)
 
 
 class Save(keras.callbacks.Callback):
+    """A callback that saves the model at the end of its training"""
     def __init__(self, directory):
         super().__init__()
         self.directory = directory
