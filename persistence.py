@@ -82,3 +82,17 @@ class TensorBoardSummaryScalars(keras.callbacks.Callback):
             val = tensor.eval(sess)
             logs[tag] = val
 
+
+# Assumes that the keras.callbacks.TensorBoard callback is called as well _after_ this callback
+class CustomTensorBoardSummary(keras.callbacks.Callback):
+    def __init__(self, functions):
+        """scalars: a dict of strings(tags) and functions taking the model and returning the value to be serialized"""
+        super().__init__()
+        self.functions = functions
+
+    def on_epoch_end(self, epoch, logs=None):
+        assert logs
+        for tag, f in self.functions.items():
+            val = f(self.model)
+            logs[tag] = val
+
