@@ -22,12 +22,11 @@ sin_input = np.array([[i * DOMAIN_MAX / INPUT_SIZE] for i in range(INPUT_SIZE)])
 sin_output = np.array([sin(x) for x in sin_input])
 
 space = {'choice': hp.choice('num_layers',
-                             [{'num_layers': 2, 'units2': 1},
-                              {'num_layers': 3, 'units2': 50 * scope.int(hp.quniform('units2', 1, 10, 1)),
+                             [{'num_layers': 3, 'units2': 5 * scope.int(hp.quniform('units2', 1, 10, 1)),
                                                 'units3': 1}
                               ]),
 
-         'units1': 50 * scope.int(hp.quniform('units1', 1, 10, 1)),
+         'units1': 5 * scope.int(hp.quniform('units1', 1, 10, 1)),
 
          'epochs': 10000,
          'learning_rate': hp.choice('learning_rate', [0.1, 0.2]),
@@ -63,6 +62,8 @@ def create_model(params, input_dim):
 
 if __name__ == '__main__':
     callbacks = [TensorBoardSummaryScalars({'learning_rate': lambda model: model.optimizer.lr}),
+                 CustomTensorBoardSummary({'units1': lambda model: model.layers[0].units,
+                                           'units2': lambda model: model.layers[2].units}),
                  keras.callbacks.TensorBoard(LOG_DIRECTORY),
                  persistence.Save(LOG_DIRECTORY),
                  OneDValidationContinuousPlotCallback(sin_input, sin_output),
