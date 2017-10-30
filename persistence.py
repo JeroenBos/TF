@@ -61,11 +61,11 @@ class Save(keras.callbacks.Callback):
         self.model.save(path)
 
 
+# Assumes that the keras.callbacks.TensorBoard callback is called as well _after_ this callback
 class TensorBoardSummaryScalars(keras.callbacks.Callback):
-    def __init__(self, log_dir, scalars):
+    def __init__(self, scalars):
         """scalars: a dict of strings(tags) and functions taking a model and returning a tensor """
         super().__init__()
-        self.log_dir = log_dir
         self.scalars = scalars
 
     def on_train_begin(self, logs=None):
@@ -81,5 +81,4 @@ class TensorBoardSummaryScalars(keras.callbacks.Callback):
             tensor = get_tensor(self.model)
             val = tensor.eval(sess)
             logs[tag] = val
-
 

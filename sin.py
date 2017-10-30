@@ -62,7 +62,7 @@ def create_model(params, input_dim):
 
 
 if __name__ == '__main__':
-    callbacks = [TensorBoardSummaryScalars(LOG_DIRECTORY, {'learning_rate': lambda model: model.optimizer.lr}),
+    callbacks = [TensorBoardSummaryScalars({'learning_rate': lambda model: model.optimizer.lr}),
                  keras.callbacks.TensorBoard(LOG_DIRECTORY),
                  persistence.Save(LOG_DIRECTORY),
                  OneDValidationContinuousPlotCallback(sin_input, sin_output),
