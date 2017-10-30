@@ -41,11 +41,9 @@ def create_model(params, input_dim):
     model = persistence.try_find(params, LOG_DIRECTORY)
     if model:
         print('model loaded')
-        model.parameters = params
         return model
 
     model = Sequential()
-    model.parameters = params
     model.add(Dense(units=params['units1'], input_dim=input_dim))
     model.add(Activation(params['activation']))
 
