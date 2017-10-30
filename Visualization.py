@@ -72,13 +72,17 @@ class PlotCallback(keras.callbacks.Callback):
 
 
 class OneDValidationPlotCallback(PlotCallback):
-    def __init__(self, x_val, y_val, select_new_model_predicate=None):
+    def __init__(self, x_val, y_val, select_new_model_predicate=None, x_map=None):
+        """select_new_model_predicate: a function taking the current model. Returns whether it pertains to the plot"""
+        """x_map: a function taking some input x, and mapping it the x-axis. """
         self.__x_val = x_val
         self.__y_val = y_val
+        self.__x_map = x_map or (lambda x_val_: x_val_)
         super().__init__(self.plot, self.get_plot_args, select_new_model_predicate)
 
     def get_plot_args(self):
-        return {'x_val': self.__x_val,
+        x_axis_values = self.__x_map(self.__x_val)
+        return {'x_val': x_axis_values,
                 'y_val': self.__y_val,
                 'predictions': self.selected_model.predict(self.__x_val)}
 
@@ -89,8 +93,9 @@ class OneDValidationPlotCallback(PlotCallback):
 
 
 class OneDValidationContinuousPlotCallback(OneDValidationPlotCallback):
-    def __init__(self, x_val, y_val):
-        super().__init__(x_val, y_val, lambda *args: True)
+    def __init__(self, x_val, y_val, x_map=None):
+
+        super().__init__(x_val, y_val, lambda *args: True, x_map)
 
     def on_epoch_end(self, epoch, logs=None):
         if epoch % 10 == 0:
