@@ -2,6 +2,7 @@ import types
 import keras
 import os
 import tensorflow as tf
+import numpy as np
 
 # list of modules from which try to find the names of parameters (for file names when saving/loading)
 _modules = [keras.optimizers, keras.activations, keras.losses]
@@ -94,5 +95,5 @@ class CustomTensorBoardSummary(keras.callbacks.Callback):
         assert logs
         for tag, f in self.functions.items():
             val = f(self.model)
-            logs[tag] = val
+            logs[tag] = np.array([val], dtype=float)
 
