@@ -13,22 +13,24 @@ from Visualization import OneDValidationContinuousPlotCallback
 from persistence import *
 
 LOG_DIRECTORY = "D:\\TFlogs\\"
-DX = 0.01
+DX = 0.1
 INPUT_SIZE = 100
+TEMPORAL_SIZE = 10
 
 
 def generate_input_and_output():
     x_ = np.random.uniform(0, 2 * pi)
     for i in range(INPUT_SIZE):
-        yield [[sin(x_)], [sin(x_ + DX)]], sin(x_ + DX + DX)
+        yield [[sin(x_ + i * DX)] for i in range(TEMPORAL_SIZE)], sin(x_ + TEMPORAL_SIZE * DX)
         x_ += DX
 
 
 x, y = (np.array(t) for t in zip(*islice(generate_input_and_output(), 0, INPUT_SIZE)))
-assert x.shape == (INPUT_SIZE, 2, 1)
-space = {'units1': 20,
-         'units2': 20,
-         'learning_rate': 0.1,
+assert x.shape == (INPUT_SIZE, TEMPORAL_SIZE, 1)
+space = {'units1': 40,
+         'units2': 40,
+         'units3': 10,
+         'learning_rate': 0.2,
          'loss': keras.losses.mean_squared_error,
          'epochs': 10000
          }
@@ -42,10 +44,10 @@ def create_model(params, input_shape):
         model = Sequential()
         model.add(SimpleRNN(units=params['units1'],
                             kernel_initializer=keras.initializers.RandomNormal(stddev=0.001),
-                            recurrent_initializer=keras.initializers.Identity(gain=1.0),
                             input_shape=input_shape))
         print(model.output_shape)
         model.add(Dense(units=params['units2'], activation=keras.activations.tanh))
+        model.add(Dense(units=params['units3'], activation=keras.activations.tanh))
         model.add(Dense(units=1, activation=keras.activations.tanh))
 
         model.compile(optimizer=SGD(params['learning_rate']), loss=params['loss'])
@@ -53,10 +55,9 @@ def create_model(params, input_shape):
 
 
 if __name__ == '__main__':
-    callbacks = [TensorBoardSummaryScalars({'learning_rate': lambda model: model.optimizer.lr}),
-                 CustomTensorBoardSummary({'units1': lambda model: model.layers[0].units,
-                                           'units2': lambda model: model.layers[2].units}),
-                 keras.callbacks.TensorBoard(LOG_DIRECTORY),
+    callbacks = [keras.callbacks.TensorBoard(LOG_DIRECTORY),
+                 OneDValidationContinuousPlotCallback(x, y, lambda timed_xs: timed_xs[:, 0]),
+                 ReduceLROnPlateau('loss', patience=250, factor=0.8, min_lr=0.01)
                  ]
 
     hypermin(space, create_model, x, y, x, y, verbose=0, callbacks=callbacks)
