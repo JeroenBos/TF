@@ -21,10 +21,14 @@ def get_name(parameter):
         return type(parameter).__name__
 
 
-def try_find(params, directory):
+def try_find(params, directory, verbose=0):
     """Tries to find a saved model in the specified directory that matches the specified parameters"""
     path = os.path.join(directory, get_filename(params))
-    return keras.models.load_model(path) if os.path.exists(path) else None
+    result = keras.models.load_model(path) if os.path.exists(path) else None
+    if result and verbose:
+        print('model loaded')
+    return result
+
 
 
 def get_filename(params):

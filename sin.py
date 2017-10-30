@@ -38,23 +38,20 @@ space = {'choice': hp.choice('num_layers',
 def create_model(params, input_dim):
     persistence.print_param_names(params)
 
-    model = persistence.try_find(params, LOG_DIRECTORY)
-    if model:
-        print('model loaded')
-        return model
+    model = persistence.try_find(params, LOG_DIRECTORY, verbose=1)
+    if model is None:
+        model = Sequential()
+        model.add(Dense(units=params['units1'], input_dim=input_dim))
+        model.add(Activation(params['activation']))
 
-    model = Sequential()
-    model.add(Dense(units=params['units1'], input_dim=input_dim))
-    model.add(Activation(params['activation']))
+        model.add(Dense(units=params['units2']))
+        model.add(Activation(params['activation'] if params['num_layers'] == 3 else keras.activations.tanh))
 
-    model.add(Dense(units=params['units2']))
-    model.add(Activation(params['activation'] if params['num_layers'] == 3 else keras.activations.tanh))
+        if params['num_layers'] == 3:
+            model.add(Dense(units=params['units3']))
+            model.add(Activation(keras.activations.tanh))
 
-    if params['num_layers'] == 3:
-        model.add(Dense(units=params['units3']))
-        model.add(Activation(keras.activations.tanh))
-
-    model.compile(optimizer=SGD(params['learning_rate']), loss=params['loss'])
+        model.compile(optimizer=SGD(params['learning_rate']), loss=params['loss'])
     return model
 
 
