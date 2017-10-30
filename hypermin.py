@@ -8,7 +8,7 @@ def hypermin(space, to_model, x, y, x_val, y_val, **kwargs):
 
     def f_nn(params):
         _flatten(params)
-        model = to_model(params, input_dim=x.shape[1])
+        model = to_model(params, input_shape=x.shape[1:])
 
         class SetLossCallBack(keras.callbacks.Callback):
             def on_train_end(self, logs=None):
