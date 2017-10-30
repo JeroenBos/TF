@@ -35,13 +35,13 @@ space = {'choice': hp.choice('num_layers',
          }
 
 
-def create_model(params, input_dim):
+def create_model(params, input_shape):
     persistence.print_param_names(params)
 
     model = persistence.try_find(params, LOG_DIRECTORY, verbose=1)
     if model is None:
         model = Sequential()
-        model.add(Dense(units=params['units1'], input_dim=input_dim))
+        model.add(Dense(units=params['units1'], input_shape=input_shape))
         model.add(Activation(params['activation']))
 
         model.add(Dense(units=params['units2']))
