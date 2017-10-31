@@ -49,11 +49,11 @@ def plot(pts):
 
 
 if __name__ == '__main__':
-    ga.ga(lambda m: m.fitness(),
+    ga.ga(Member.fitness,
           Member.create_random,
           100,
-          lambda m: m.mutate(),
+          Member.mutate,
           Member.crossover,
-          lambda m: m.clone(),
+          Member.clone,
           crossover_fraction=0.5,
           callbacks=[callback])
