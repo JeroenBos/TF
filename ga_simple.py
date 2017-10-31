@@ -49,9 +49,9 @@ def plot(pts):
 
 
 if __name__ == '__main__':
-    ga.ga(Member.fitness,
+    ga.ga(100,
+          Member.fitness,
           Member.create_random,
-          100,
           Member.mutate,
           Member.crossover,
           Member.clone,
