@@ -9,7 +9,7 @@ from keras.optimizers import SGD
 from keras.callbacks import ReduceLROnPlateau
 from hypermin import *
 import persistence
-from Visualization import OneDValidationContinuousPlotCallback
+from visualization_callbacks import OneDValidationContinuousPlotCallback
 from persistence import *
 
 LOG_DIRECTORY = "D:\\TFlogs\\"

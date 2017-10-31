@@ -1,7 +1,7 @@
 import ga
 import random
 from math import *
-import Visualization
+import visualization
 import matplotlib.pyplot as plt
 
 _X_SCALE = .2
@@ -40,7 +40,7 @@ class Member:
 
 
 def callback(_generation, population, _fitnesses):
-    Visualization.plot(plot, pts=population[0].values)
+    visualization.plot(plot, pts=population[0].values)
 
 
 def plot(pts):
