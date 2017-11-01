@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 q = None
 refresh_rate = 0.5  # in seconds
 _NO_KEY = object()
+axes = None
 
 
 def enqueue(worker, worker_key=None, **kwargs):
@@ -18,6 +19,7 @@ def enqueue(worker, worker_key=None, **kwargs):
     q.put((worker, worker_key, kwargs))
 
 
+# noinspection PyArgumentList
 def _worker(local_queue):
     worker_count = 0
     performed_tasks_index = 0
@@ -28,7 +30,7 @@ def _worker(local_queue):
             while True:
                 worker, key, kwargs = local_queue.get(False)
                 key = key or _NO_KEY
-                if key in tasks and tasks[key]:
+                if key in tasks and tasks[key][0]:
                     local_queue.task_done()
                     tasks[key] = worker, kwargs, tasks[key][2]
                 else:
@@ -39,13 +41,17 @@ def _worker(local_queue):
                     performed_tasks_index += 1
 
         except queue.Empty:
-            key, (worker, kwargs, _prio) = max(filter(lambda kvp: kvp[1][2], tasks.items()),
-                                               key=lambda kvp: kvp[1][2],
-                                               default=(None, (None, None, None)))
-            if key and worker:
-                tasks[key] = None, None, None
-                worker(**kwargs)
-                local_queue.task_done()
+            while True:
+                key, (worker, kwargs, _prio) = max(filter(lambda kvp: kvp[1][2] is not None, tasks.items()),
+                                                   key=lambda kvp: kvp[1][2],
+                                                   default=(None, (None, None, None)))
+                if key and worker:
+                    tasks[key] = None, None, None
+                    # noinspection PyCallingNonCallable
+                    worker(**kwargs)
+                    local_queue.task_done()
+                else:
+                    break
 
         # on empty or non-empty queue: yield control back to the plot
         plt.pause(refresh_rate)
@@ -56,16 +62,37 @@ def plot(worker, subplot_index=(1, 1), **kwargs):
     enqueue(_Wrapper(worker, subplot_index).do, subplot_index, **kwargs)
 
 
+def _ensure_axes(subplot_index):
+    global axes
+    if axes is None:
+        axes = {}
+        plt.ion()
+        _, a = plt.subplots(subplot_index[1], subplot_index[0], squeeze=False)
+        for x in range(subplot_index[0]):
+            for y in range(subplot_index[1]):
+                axes[(x + 1, y + 1)] = a[y, x]
+
+    if subplot_index not in axes:
+        ncols = max(axes, key=lambda kvp: kvp[0])[0]
+        nrows = max(axes, key=lambda kvp: kvp[1])[1]
+        i = subplot_index[0] + subplot_index[1] * ncols
+        fig = plt.gcf()
+        assert fig
+        axes[subplot_index] = fig.add_subplot(i, ncols, nrows)
+
+    return axes[subplot_index]
+
+
 class _Wrapper:  # this class makes the function 'do' pickable
     def __init__(self, worker, subplot_index):
         self.__worker = worker
-        self.__subplot_index = subplot_index  # TODO use somewhere or delete
+        self.__subplot_index = subplot_index
 
     def do(self, **kwargs):
-        plt.ion()
-        plt.show()
-        plt.clf()
+        subplot = _ensure_axes(self.__subplot_index)
+        subplot.clear()
 
-        self.__worker(**kwargs)
+        self.__worker(subplot=subplot, **kwargs)
 
-        plt.draw()
+        fig = plt.get_current_fig_manager()
+        fig.canvas.draw()
