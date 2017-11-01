@@ -2,6 +2,7 @@ import random
 from itertools import count
 import numpy as np
 
+
 def ga(population_size,
        fitness,
        generate,
@@ -13,6 +14,7 @@ def ga(population_size,
        kill_fraction=0.5,
        kill_std_dev=0.1,
        callbacks=None,
+       pool=None,
        max_generation=-1):
     """
     :param population_size: The size of the population.
@@ -28,6 +30,7 @@ def ga(population_size,
     :param kill_std_dev: The standard deviation causing some members above (below) the fill_fraction to survive (die).
     :param callbacks: A list of functions that each takes the generation index, the generation and their fitnesses.
     :param max_generation: The number of generations to simulate. -1 means indefinite.
+    :param pool: An optional function taking a list of members removed from the population such that they can be reused
     :return: The last generation.
     """
 
@@ -46,7 +49,7 @@ def ga(population_size,
 
         population, fitnesses = zip(*sorted(zip(population, fitnesses), key=lambda t: t[1]))
 
-        survivors = _kill(population, kill_fraction, kill_std_dev)
+        survivors = _kill(population, kill_fraction, kill_std_dev, pool)
         children = _crossover(population_size, survivors, crossover_fraction, crossover)
         clones = _regenerate(survivors, population_size - len(children) - len(survivors), mutate, clone)
         _mutate(survivors, mutation_fraction, mutate)
@@ -62,15 +65,17 @@ def _compute_fitness(population, fitness):
     return [fitness(member) for member in population]  # TODO: parallelize
 
 
-def _kill(population, kill_fraction, std_dev):
+def _kill(population, kill_fraction, std_dev, pool):
     kill_median = int(round(kill_fraction * len(population)))
     assert kill_median != len(population)
     scaled_std_dev = int(round(std_dev * len(population)))
 
     # get the indices of members that above (below) the threshold are (aren't) killed where they usually would (not) be
     exception_indices = normalintsample(0, len(population), len(population) - kill_median, scaled_std_dev, kill_median)
-
     survivors = [population[i] for i in set(range(0, kill_median)) ^ exception_indices]
+
+    if pool:
+        pool((population[i] for i in set(range(kill_median, len(population))) ^ exception_indices))
     return survivors
 
 
