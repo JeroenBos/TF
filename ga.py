@@ -47,8 +47,8 @@ def ga(population_size,
         population, fitnesses = zip(*sorted(zip(population, fitnesses), key=lambda t: t[1]))
 
         survivors = _kill(population, kill_fraction, kill_std_dev)
-        children = _crossover(population, survivors, crossover_fraction, crossover)
-        clones = _regenerate(survivors, len(population) - len(children) - len(survivors), mutate, clone)
+        children = _crossover(population_size, survivors, crossover_fraction, crossover)
+        clones = _regenerate(survivors, population_size - len(children) - len(survivors), mutate, clone)
         _mutate(survivors, mutation_fraction, mutate)
 
         population = survivors + children + clones
@@ -83,11 +83,11 @@ def _mutate(population, mutation_fraction, mutate):
                 mutate(member)
 
 
-def _crossover(population, survivors, fraction, crossover):
+def _crossover(population_size, survivors, fraction, crossover):
     if fraction == 0:
         return
 
-    n = int(round(fraction * (len(population) - len(survivors))))
+    n = int(round(fraction * (population_size - len(survivors))))
     return [crossover(*random.sample(survivors, 2)) for _ in range(n)]
 
 
