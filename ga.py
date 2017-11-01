@@ -1,6 +1,6 @@
 import random
 from itertools import count
-
+import numpy as np
 
 def ga(population_size,
        fitness,
@@ -39,6 +39,7 @@ def ga(population_size,
         crossover_fraction = 0
 
     population = [generate() for _ in range(population_size)]
+    print('population generated')
 
     for generation_index in (range(max_generation) if max_generation != -1 else count(0, 1)):
         fitnesses = _compute_fitness(population, fitness)
@@ -125,3 +126,24 @@ def normalintsample(low, high, mean, std_dev, n):
         if low <= sample < high:
             indices.add(sample + low)
     return indices
+
+
+def array_crossover(a, b):
+    if isinstance(a, list):
+        assert len(a) == len(b)
+        result = []
+        for index in range(len(a)):
+            if random.randint(0, 1) == 0:
+                result.append(a[index])
+            else:
+                result.append(b[index])
+        return result
+    else:
+        assert a.shape == b.shape
+        result = np.zeros(a.shape, a.dtype)
+        for index in np.unravel_index(range(a.size), a.shape):
+            if random.randint(0, 1) == 0:
+                result[index] = a[index]
+            else:
+                result[index] = b[index]
+        return result
