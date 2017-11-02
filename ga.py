@@ -45,9 +45,14 @@ def ga(population_size,
     print('population generated')
 
     for generation_index in (range(max_generation) if max_generation != -1 else count(0, 1)):
+        if generation_index % 100 == 0:
+            print('gen', generation_index)
         fitnesses = _compute_fitness(population, fitness)
 
         population, fitnesses = zip(*sorted(zip(population, fitnesses), key=lambda t: t[1]))
+
+        for callback in callbacks:
+            callback(generation_index, population, fitnesses)
 
         survivors = _kill(population, kill_fraction, kill_std_dev, pool)
         children = _crossover(population_size, survivors, crossover_fraction, crossover)
@@ -57,8 +62,6 @@ def ga(population_size,
         population = survivors + children + clones
         assert len(population) == len(fitnesses)
 
-        for callback in callbacks:
-            callback(generation_index, population, fitnesses)
 
 
 def _compute_fitness(population, fitness):
@@ -72,7 +75,7 @@ def _kill(population, kill_fraction, std_dev, pool):
 
     # get the indices of members that above (below) the threshold are (aren't) killed where they usually would (not) be
     exception_indices = normalintsample(0, len(population), len(population) - kill_median, scaled_std_dev, kill_median)
-    survivors = [population[i] for i in set(range(0, kill_median)) ^ exception_indices]
+    survivors = [population[i] for i in sorted(set(range(0, kill_median)) ^ exception_indices)]
 
     if pool:
         pool((population[i] for i in set(range(kill_median, len(population))) ^ exception_indices))
@@ -97,10 +100,12 @@ def _crossover(population_size, survivors, fraction, crossover):
 
 
 def _regenerate(survivors, n, mutate, clone):
-    result = [clone(random.sample(survivors, 1)[0]) for _ in range(n)]
-    for member in result:
-        mutate(member)
-    return result
+    PREFIXED = n // 2
+    models = survivors[:PREFIXED] + random.sample(survivors, n - PREFIXED)
+    clones = [clone(model) for model in models]
+    for clone in clones:
+        mutate(clone)
+    return clones
 
 
 def _merge(gapped, fillings):
