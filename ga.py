@@ -55,8 +55,8 @@ def ga(population_size,
         _mutate(survivors, mutation_fraction, mutate)
 
         population = survivors + children + clones
-
         assert len(population) == len(fitnesses)
+
         for callback in callbacks:
             callback(generation_index, population, fitnesses)
 

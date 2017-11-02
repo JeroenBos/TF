@@ -10,14 +10,14 @@ from keras.optimizers import SGD
 from keras.initializers import glorot_uniform
 import keras
 
-_X_SCALE = .2
+_X_SCALE = .4
 _LENGTH = 10
 
 
 def _create_archetype():
     model = Sequential()
-    model.add(Dense(20, activation=tanh, input_shape=(1,), ))
-    model.add(Dense(20, activation=tanh))
+    model.add(Dense(16, activation=tanh, input_shape=(1,), ))
+    model.add(Dense(16, activation=tanh))
     model.add(Dense(1, activation=tanh))
     model.compile(optimizer=SGD(0.1), loss=mean_squared_error)
     return model
@@ -36,6 +36,7 @@ class Member:
     archetype_shape = (len(archetype.get_weights()),) if isinstance(archetype.get_weights(),
                                                                     list) else archetype.get_weights().shape
     archetype_relevant_params_count = count_relevant_parameters(archetype)
+    pool = []
 
     def __init__(self, model):
         self.__model = model
@@ -72,17 +73,19 @@ class Member:
     def predict(self):
         return self.__model.predict([i * _X_SCALE for i in range(_LENGTH)])
 
-    @staticmethod
-    def crossover(a, b):
-        child = Member.create_random()
+    @classmethod
+    def crossover(cls, a, b):
+        child = cls.create_random()
         for a_layer, b_layer, cloned_layer in zip(a.__model.layers, b.__model.layers, child.__model.layers):
             if isinstance(a_layer, Dense):
-                cloned_layer.set_weights(array_crossover(a_layer.get_weights(), b_layer.get_weights()))
+                cr_ov = array_crossover(a_layer.get_weights(), b_layer.get_weights())
+                cloned_layer.set_weights(cr_ov)
+
         return child
 
-    @staticmethod
-    def create_random():
-        result = Member(clone_model(Member.archetype))
+    @classmethod
+    def create_random(cls):
+        result = cls.draw_from_pool_or_create()
         for layer in result.__model.layers:
             if isinstance(layer, Dense):
                 new_weights = glorot_uniform()(layer.weights[0].shape.as_list()).eval(
@@ -91,17 +94,30 @@ class Member:
                 layer.set_weights(new_weights)
         return result
 
+    @classmethod
+    def draw_from_pool_or_create(cls):
+        if len(cls.pool) != 0:
+            result = cls.pool[-1]
+            del cls.pool[-1]
+            return result
+        return cls(clone_model(cls.archetype))
+
     def __repr__(self):
         return 'member fitness = ' + str(self.fitness())
 
 
 gen_best_fitnesses = []
+gen_fitness_mmm = [[], [], []]
 
 
-def callback(_generation, population, _fitnesses):
+def callback(_generation, population, fitnesses):
     gen_best_fitnesses.append(population[0].fitness())
+    gen_fitness_mmm[0].append(min(fitnesses))
+    gen_fitness_mmm[1].append(mean(fitnesses))
+    gen_fitness_mmm[2].append(max(fitnesses))
     visualization.plot(plot, pts=(list(range(len(gen_best_fitnesses))), gen_best_fitnesses))
-    visualization.plot(plot_predictions, subplot_index=(1, 2), predictions=population[0].predict())
+    visualization.plot(plot_predictions, subplot_index=(1, 2), predictions=population[0].predict()),
+    visualization.plot(plot_quartiles, subplot_index=(1, 3), fitnesses=gen_fitness_mmm)
 
 
 def plot(subplot, pts):
@@ -113,8 +129,18 @@ def plot_predictions(subplot, predictions):
     subplot.scatter([range(_LENGTH)], [sin(i * _X_SCALE) for i in range(_LENGTH)])
 
 
+def plot_quartiles(subplot, fitnesses):
+    subplot.scatter([range(len(fitnesses[0]))], fitnesses[0])
+    subplot.scatter([range(len(fitnesses[0]))], fitnesses[1])
+    subplot.scatter([range(len(fitnesses[0]))], fitnesses[2])
+
+
 def print_gen_number(generation_index, *_args):
     print(generation_index)
+
+
+def mean(numbers):
+    return float(sum(numbers)) / max(len(numbers), 1)
 
 
 if __name__ == '__main__':
@@ -124,5 +150,6 @@ if __name__ == '__main__':
        Member.mutate,
        Member.crossover,
        Member.clone,
+       pool=Member.pool.extend,
        crossover_fraction=0.5,
-       callbacks=[callback, print_gen_number])
+       callbacks=[callback])
