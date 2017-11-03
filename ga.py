@@ -1,5 +1,5 @@
 import random
-from itertools import count
+from itertools import count, islice
 import numpy as np
 
 
@@ -63,7 +63,6 @@ def ga(population_size,
         assert len(population) == len(fitnesses)
 
 
-
 def _compute_fitness(population, fitness):
     return [fitness(member) for member in population]  # TODO: parallelize
 
@@ -85,7 +84,7 @@ def _kill(population, kill_fraction, std_dev, pool):
 def _mutate(population, mutation_fraction, mutate):
     if mutation_fraction == 0:
         return
-    for member in population:
+    for member in islice(population, 1, None):  # best one cannot mutate
         if member is not None:
             if random.uniform(0, 1) < mutation_fraction:
                 mutate(member)
@@ -100,8 +99,16 @@ def _crossover(population_size, survivors, fraction, crossover):
 
 
 def _regenerate(survivors, n, mutate, clone):
-    PREFIXED = n // 2
-    models = survivors[:PREFIXED] + random.sample(survivors, n - PREFIXED)
+    if n > len(survivors):
+        models = list(survivors)
+        while len(models) != n:
+            new = survivors[:max(0, min(n - len(models), len(survivors)))]
+            models += new
+    else:
+        PREFIXED = n // 2
+        models = survivors[:PREFIXED] + random.sample(survivors, n - PREFIXED)
+
+    assert len(models) == n
     clones = [clone(model) for model in models]
     for clone in clones:
         mutate(clone)
