@@ -116,6 +116,7 @@ def loop(q, subplotters):
     t = None
     while True:
         try:
+            t = None
             time.sleep(0.1)
             while True:  # only get latest
                 t = q.get(block=False)
