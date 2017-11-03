@@ -110,7 +110,8 @@ class _Wrapper:  # this class makes the function 'do' pickable
         plt.pause(refresh_rate)
 
 
-def loop(q, subplotters):
+def loop(q, subplotters, *data_handlers):
+    data_handlers = data_handlers or []
     global axes
     _ensure_axes(_get_max_index(subplotters))
     t = None
@@ -120,6 +121,8 @@ def loop(q, subplotters):
             time.sleep(0.1)
             while True:  # only get latest
                 t = q.get(block=False)
+                for data_handler in data_handlers:
+                    data_handler(*t)
         except queue.Empty:
             if t:
                 for subplot_index, plotter in subplotters.items():
