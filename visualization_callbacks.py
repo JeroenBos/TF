@@ -51,3 +51,9 @@ class OneDValidationContinuousPlotCallback(OneDValidationPlotCallback):
     def on_epoch_end(self, epoch, logs=None):
         if epoch % 10 == 0:
             self.update()
+
+
+class PrintEpoch(keras.callbacks.Callback):
+    def __init__(self):
+        super().__init__()
+        self.__epoch = 0
