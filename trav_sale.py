@@ -1,19 +1,17 @@
 import ga
 import random
 import visualization
-import itertools
-import time
 import multiprocessing
-import queue
 import matplotlib.pyplot as plt
 
 plt.ion()
-_COUNT = 20
+_COUNT = 100
 SIZE = 100
 city_coords = [(random.randint(0, SIZE), random.randint(0, SIZE)) for _ in range(_COUNT)]
+gen_fitness_mmm = [[], [], []]
 
 
-def dist(i, j):
+def dist(i: int, j: int):
     c1 = city_coords[i % len(city_coords)]
     c2 = city_coords[j % len(city_coords)]
     d = (c1[0] - c2[0]) ** 2 + (c1[1] - c2[1]) ** 2
@@ -72,38 +70,10 @@ class Member:
         return self.__values
 
 
-#gen_fitness_mmm = [[], [], []]
-#prev = None
-#prev_f = None
-
-#def callback(_generation, population, fitnesses):
-#    gen_fitness_mmm[0].append(fitnesses[0])
-#    gen_fitness_mmm[1].append(mean(fitnesses))
-#    gen_fitness_mmm[2].append(fitnesses[-1])
-#    global prev, prev_f
-#    if _generation % 500 == 0:
-#        print('gen: ', _generation)
-#        assert fitnesses[0] == min(fitnesses)
-#        assert population[0].fitness() == fitnesses[0]
-#        assert population[0].fitness() == gen_fitness_mmm[0][-1]
-#
-#    if prev:
-#        if fitnesses[0] != prev_f:
-#            assert population[0] != prev
-#            assert population[0].values != prev.values
-#        else:
-#            assert population[0].fitness() == prev_f
-#
-#
-#    prev = population[0]
-#    prev_f = fitnesses[0]
-
-gen_fitness_mmm = [[], [], []]
 def plot_quartiles(subplot, _generation, fitnesses, _best_member):
     gen_fitness_mmm[0].append(fitnesses[0])
     subplot.set_yscale('log')
-    L = min(100, len(gen_fitness_mmm[0]))
-    subplot.scatter(list(range(L)), gen_fitness_mmm[0][-L:])
+    subplot.scatter(list(range(len(gen_fitness_mmm[0]))), gen_fitness_mmm[0])
 
 
 def mean(numbers):
@@ -121,14 +91,14 @@ q = multiprocessing.Queue()
 
 
 def _worker(q_):
-    ga.ga(100,
+    ga.ga(1000,
           Member.fitness,
           Member.create_random,
           Member.mutate,
           Member.crossover,
           Member.clone,
           mutation_fraction=0,
-          crossover_fraction=0.1,
+          crossover_fraction=0.2,
           callbacks=[_data_pruner(q_)]
           )
 
@@ -148,6 +118,7 @@ if __name__ == '__main__':
 # Putting the fitness summary over the wire rather than the fitness list itself solved the problem. Big red flag.
 # 2. It's impossible to make the UI perfectly responsive on a secondary process. Sometimes it feels okay, but every once
 # in a while it is just sluggish or it hangs. plt is supposed to be run on a single thread, so I should stick to main
+
 
 class _data_pruner:
     def __init__(self, q_):
