@@ -1,7 +1,6 @@
 import threading
 import multiprocessing
 import queue
-import time
 
 q = None
 
@@ -13,24 +12,21 @@ def enqueue(item):
         process = threading.Thread(target=worker, args=(q,))
         process.start()
     q.put(item)
-    print('putted item:', item)
-    #time.sleep(0)
+    print(f'len putted item: {len(item)}. qsize: {q.qsize()}. buffer len: {len(q._buffer)}')
 
 
 def worker(local_queue):
     while True:
-        try:  # only do newest enqueued element per key (no need in plotting old results)
+        try:
             while True:
                 item = local_queue.get(block=False)
-                print('gotten item: ', item)
+                print(f'len got item: {len(item)}. qsize: {q.qsize()}. buffer len: {len(q._buffer)}')
         except queue.Empty:
-            pass #    print('empty')
-        #time.sleep(1)
+            print('empty')
 
 
 if __name__ == '__main__':
-    for i in range(200000):
-        enqueue(i)
-        #for j in range(1000000):
-        #    j = j + 1
+    for i in range(1, 100000, 1000):
+        enqueue(list(range(i)))
+
 
