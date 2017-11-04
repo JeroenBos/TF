@@ -124,7 +124,7 @@ def loop(q, subplotters, *data_handlers):
                 for data_handler in data_handlers:
                     data_handler(*t)
         except queue.Empty:
-            if t:
+            if t is not None:
                 for subplot_index, plotter in subplotters.items():
                     axes[subplot_index].clear()
                     plotter(axes[subplot_index], *t)
