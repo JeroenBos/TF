@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 import keras.initializers
 from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Reshape, UpSampling2D, Flatten, SpatialDropout2D
+from keras.layers import Dense, Conv2D, Reshape, UpSampling2D, Flatten, SpatialDropout2D, Dropout
 from keras import losses, activations, callbacks, optimizers
 import persistence
 from visualization_callbacks import OneDValidationContinuousPlotCallback
@@ -19,6 +19,8 @@ import random
 import sys
 from math import log10, floor
 from visualization import loop
+import matplotlib.patches as patches
+import time
 
 
 def debugging():
@@ -66,10 +68,12 @@ def create_model(params, input_shape):
     generator.add(Dense(NOISE_SIZE, input_shape=(NOISE_SIZE,)))
     generator.add(Dense(NOISE_SIZE))
     generator.add(Reshape((10, 10, 1)))
-    generator.add(SpatialDropout2D(0.2))
+    generator.add(keras.layers.MaxPooling2D())
     generator.add(UpSampling2D())
-    generator.add(Reshape((400,)))
-    generator.add(Dense(units=28*28, activation=activations.tanh))
+    generator.add(SpatialDropout2D(0.2))
+    generator.add(Flatten())
+    generator.add(Dense(units=28*28, activation=activations.sigmoid))
+    generator.add(Dropout(0.2))
     generator.add(Reshape((28, 28, 1)))
 
     assert size_equals(generator.output_shape[1:], input_shape[1:]), \
@@ -87,6 +91,7 @@ def create_model(params, input_shape):
                              kernel_size=3,
                              activation=activations.relu))
     discriminator.add(Flatten())
+    discriminator.add(Dense(250, activation=activations.tanh))
     discriminator.add(Dense(50, activation=activations.tanh))
     discriminator.add(Dense(2, activation=activations.softmax))
     discriminator.compile(loss=losses.categorical_crossentropy,
@@ -171,14 +176,23 @@ class workCallback(keras.callbacks.Callback):
         super().__init__()
 
         self.q = q
+        self.__i = 0
         data = load_mnist_x()
-        train_adversarial(create_model(space, data.shape), data, BATCH_SIZE, self)
+        models = create_model(space, data.shape)
+        self.__generator = models[0]
+        train_adversarial(models, data, BATCH_SIZE, self)
 
     def is_generator(self):
         return len(self.model.layers) == 2
 
     def on_batch_end(self, batch, logs=None):
         self.q.put((self.is_generator(), logs['loss'], logs['acc']))
+        if self.__i % 200 == 0:
+            generated = self.__generator.predict(np.reshape(np.random.uniform(0, 1, NOISE_SIZE), (1, 100)))
+            generated = np.reshape(generated, (28, 28))
+            self.q.put(generated)
+            time.sleep(1)
+        self.__i += 1
 
 
 if __name__ == '__main__':
@@ -189,7 +203,17 @@ if __name__ == '__main__':
     disc_acc = []
     gen_acc = []
 
+    image = None
+    image_version = 0
+    latest_shown_image_version = 0
+
     def data_handler(*args):
+        global image, image_version
+        if len(args) != 3:
+            image = args
+            image_version += 1
+            return
+
         gen_x.append(len(gen_x))
         disc_x.append(len(disc_x))
 
@@ -221,8 +245,20 @@ if __name__ == '__main__':
         subplot.set_xlim(left=0)
         subplot.set(ylabel='acc')
 
+    def image_plotter(subplot, *_args):
+        global latest_shown_image_version
+        if image_version != latest_shown_image_version:
+            latest_shown_image_version = image_version
+            print('image version:', image_version)
+            subplot.set_ylim(bottom=0, top=28)
+            subplot.set_xlim(left=0, right=28)
+            subplot.clear()
+            for x in range(28):
+                for y in range(28):
+                    subplot.add_patch(patches.Rectangle((x, y), width=1, height=1, facecolor=[1-image[x][y], 1-image[x][y], 1-image[x][y]]))
 
-    m(workCallback, {(1, 1): loss_plotter, (1, 2): acc_plotter}, data_handler)
+
+    m(workCallback, {(1, 1): loss_plotter, (1, 2): acc_plotter, (1, 3): image_plotter}, data_handler)
 
 
 
