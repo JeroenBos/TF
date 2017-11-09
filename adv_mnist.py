@@ -6,7 +6,7 @@ import tensorflow as tf
 import numpy as np
 import keras.initializers
 from keras.models import Sequential
-from keras.layers import Dense, Conv2D, Reshape, UpSampling2D, Flatten, SpatialDropout2D, Dropout
+from keras.layers import Dense, Conv2D, Reshape, UpSampling2D, Flatten, SpatialDropout2D, Dropout, Deconv2D
 from keras import losses, activations, callbacks, optimizers
 import persistence
 from visualization_callbacks import OneDValidationContinuousPlotCallback
@@ -28,13 +28,14 @@ def debugging():
 
 
 LOG_DIRECTORY = "D:\\TFlogs\\"
-NOISE_SIZE = 100
+NOISE_SIZE = 64
 BATCH_SIZE = 10 if debugging() else 1000
 
 space = {'units2': 40,
-         'units3': 28*28,
+         'units3': 28 * 28,
          'epochs': 2
          }
+
 
 def load_mnist_x():
     x_train, y_train, x_val, y_val, x_test, y_test = mnist.load_dataset()
@@ -48,8 +49,10 @@ def load_model():
     model.trainable = False
     return model
 
+
 def size(shape):
     return reduce(operator.mul, shape, 1)
+
 
 def size_equals(shape1, shape2):
     return size(shape1) == size(shape2)
@@ -62,18 +65,28 @@ def Dchoice(a, size):
 
 
 def create_model(params, input_shape):
+    assert round(NOISE_SIZE ** 0.5) == NOISE_SIZE ** 0.5
     persistence.print_param_names(params)
 
     generator = Sequential()
-    generator.add(Dense(NOISE_SIZE, input_shape=(NOISE_SIZE,)))
-    generator.add(Dense(NOISE_SIZE))
-    generator.add(Reshape((10, 10, 1)))
-    generator.add(keras.layers.MaxPooling2D())
-    generator.add(UpSampling2D())
-    generator.add(SpatialDropout2D(0.2))
-    generator.add(Flatten())
-    generator.add(Dense(units=28*28, activation=activations.sigmoid))
-    generator.add(Dropout(0.2))
+    generator.add(Dense(NOISE_SIZE, activation=activations.relu, input_shape=(NOISE_SIZE,)))
+    generator.add(Reshape((int(NOISE_SIZE ** 0.5), int(NOISE_SIZE ** 0.5), 1)))
+    generator.add(Deconv2D(filters=32,
+                           kernel_size=5,
+                           activation=activations.relu))
+    generator.add(Deconv2D(filters=32,
+                           kernel_size=5,
+                           activation=activations.relu))
+    generator.add(Deconv2D(filters=16,
+                           kernel_size=5,
+                           activation=activations.relu))
+    generator.add(Deconv2D(filters=10,
+                           kernel_size=5,
+                           activation=activations.relu))
+    generator.add(Deconv2D(filters=1,
+                           kernel_size=5,
+                           activation=activations.sigmoid))
+    print('output_shape', generator.output_shape)
     generator.add(Reshape((28, 28, 1)))
 
     assert size_equals(generator.output_shape[1:], input_shape[1:]), \
@@ -91,8 +104,7 @@ def create_model(params, input_shape):
                              kernel_size=3,
                              activation=activations.relu))
     discriminator.add(Flatten())
-    discriminator.add(Dense(250, activation=activations.tanh))
-    discriminator.add(Dense(50, activation=activations.tanh))
+    discriminator.add(Dense(50, activation=activations.relu))
     discriminator.add(Dense(2, activation=activations.softmax))
     discriminator.compile(loss=losses.categorical_crossentropy,
                           optimizer=optimizers.RMSprop(lr=0.0008, clipvalue=1.0, decay=6e-8),
@@ -126,6 +138,9 @@ def train_adversarial(models, real_data, batch_size, callbacks=None, verbose=0):
 
     generator, discriminator, both = models
 
+    generator.summary()
+    discriminator.summary()
+
     y_fakes = keras.utils.to_categorical(np.zeros(batch_size), 2)
     y_reals = keras.utils.to_categorical(np.ones(batch_size), 2)
     y = np.concatenate((y_reals, y_fakes))
@@ -142,16 +157,19 @@ def train_adversarial(models, real_data, batch_size, callbacks=None, verbose=0):
         discriminator.fit(x, y, epochs=99999, verbose=verbose, callbacks=callbacks + [ToBeatCallback(0.8)])
 
 
-
 def round_to_2_significant(x):
     if x == 0:
         return 0
-    return round(x, 1-int(floor(log10(abs(x)))))
+    return round(x, 1 - int(floor(log10(abs(x)))))
+
 
 plot_label = 'acc'
+
+
 def summarize(metrics):
     x = metrics.history[plot_label][-1]
     return round_to_2_significant(x)
+
 
 class worker_wrapper_wrapper:
     def __init__(self, worker):
@@ -188,7 +206,7 @@ class workCallback(keras.callbacks.Callback):
     def on_batch_end(self, batch, logs=None):
         self.q.put((self.is_generator(), logs['loss'], logs['acc']))
         if self.__i % 200 == 0:
-            generated = self.__generator.predict(np.reshape(np.random.uniform(0, 1, NOISE_SIZE), (1, 100)))
+            generated = self.__generator.predict(np.reshape(np.random.uniform(0, 1, NOISE_SIZE), (1, NOISE_SIZE)))
             generated = np.reshape(generated, (28, 28))
             self.q.put(generated)
             time.sleep(1)
@@ -206,6 +224,7 @@ if __name__ == '__main__':
     image = None
     image_version = 0
     latest_shown_image_version = 0
+
 
     def data_handler(*args):
         global image, image_version
@@ -230,7 +249,9 @@ if __name__ == '__main__':
         other_loss.append(other_loss[-1] if len(other_loss) != 0 else 0)
         other_acc.append(other_acc[-1] if len(other_acc) != 0 else 0)
 
+
     def loss_plotter(subplot, *_args):
+        subplot.clear()
         subplot.plot(disc_x, disc_loss, label='discriminator')
         subplot.plot(gen_x, gen_loss, label='generator')
         subplot.legend(loc=(0.85, 1))
@@ -238,28 +259,29 @@ if __name__ == '__main__':
         subplot.set_xlim(left=0)
         subplot.set(ylabel='loss')
 
+
     def acc_plotter(subplot, *_args):
+        subplot.clear()
         subplot.plot(disc_x, disc_acc)
         subplot.plot(gen_x, gen_acc)
         subplot.set_ylim(bottom=0)
         subplot.set_xlim(left=0)
         subplot.set(ylabel='acc')
 
+
     def image_plotter(subplot, *_args):
         global latest_shown_image_version
         if image_version != latest_shown_image_version:
             latest_shown_image_version = image_version
             print('image version:', image_version)
+            print(image)
             subplot.set_ylim(bottom=0, top=28)
             subplot.set_xlim(left=0, right=28)
             subplot.clear()
             for x in range(28):
                 for y in range(28):
-                    subplot.add_patch(patches.Rectangle((x, y), width=1, height=1, facecolor=[1-image[x][y], 1-image[x][y], 1-image[x][y]]))
+                    subplot.add_patch(patches.Rectangle((x, y), width=1, height=1,
+                                                        facecolor=[1 - image[x][y], 1 - image[x][y], 1 - image[x][y]]))
 
 
     m(workCallback, {(1, 1): loss_plotter, (1, 2): acc_plotter, (1, 3): image_plotter}, data_handler)
-
-
-
-
