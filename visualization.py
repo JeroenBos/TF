@@ -126,7 +126,7 @@ def loop(q, subplotters, *data_handlers):
         except queue.Empty:
             if t is not None:
                 for subplot_index, plotter in subplotters.items():
-                    axes[subplot_index].clear()
+                    # axes[subplot_index].clear()
                     plotter(axes[subplot_index], *t)
                 fig = plt.get_current_fig_manager()
                 fig.canvas.draw()

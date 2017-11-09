@@ -84,10 +84,11 @@ def _kill(population, kill_fraction, std_dev, pool):
 def _mutate(population, mutation_fraction, mutate):
     if mutation_fraction == 0:
         return
-    for member in islice(population, 1, None):  # best one cannot mutate
+    for member_index in range(1, len(population)):  # best one cannot mutate
+        member = population[member_index]
         if member is not None:
             if random.uniform(0, 1) < mutation_fraction:
-                mutate(member)
+                population[member_index] = mutate(member)
 
 
 def _crossover(population_size, survivors, fraction, crossover):
