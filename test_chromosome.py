@@ -3,6 +3,7 @@ import hyperchrom as c
 import keras
 
 
+# noinspection PyMethodMayBeStatic
 class ChromosomeTests(unittest.TestCase):
     def test_collection(self):
         distribution = c.ParameterAllele.CollectionDistribution([10, 20, 50, 100])
