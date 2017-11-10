@@ -54,6 +54,11 @@ class ChromosomeTests(unittest.TestCase):
 
         assert chromosome1 is not chromosome2
 
+    def test_invalid_parameter_throws(self):
+        with self.assertRaises(AttributeError):
+            c.ParameterAllele(lambda: None, does_not_exist=(0, c.ParameterAllele.CollectionDistribution([0])))
+
 
 if __name__ == '__main__':
+    ChromosomeTests().test_invalid_parameter_throws()
     unittest.main()

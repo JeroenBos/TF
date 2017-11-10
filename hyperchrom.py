@@ -1,7 +1,27 @@
-from typing import List, Tuple, Dict, Union
+from typing import *
 import itertools
 import random
 import collections
+import inspect
+
+
+def assert_is_callable_with(f, parameter_names):
+    args, _varargs, varkw, defaults, kwonlyargs, kwonlydefaults, _annotations = inspect.getfullargspec(f)
+
+    if varkw:
+        return
+
+    for parameter_name in parameter_names:
+        if parameter_name not in args and parameter_name not in kwonlyargs:
+            raise AttributeError(f'unused parameter {parameter_name} provided')
+
+    args_without_default = args[:(-len(defaults) if defaults else None)]
+    kwonlyargs_without_default = list(set(kwonlyargs) - set(kwonlydefaults.keys()))
+
+    mandatory_parameter_names = args_without_default + kwonlyargs_without_default
+    for mandatory_parameter_name in mandatory_parameter_names:
+        if mandatory_parameter_name not in parameter_names:
+            raise AttributeError(f'{mandatory_parameter_name} must be provided')
 
 
 class Genome:
@@ -152,7 +172,7 @@ class ParameterAllele(Allele):
 
     def __init__(self, layer_type, **parameters: Union[DistributionValue, Tuple[object, Distribution]]):
         super().__init__()
-        # TODO: assert that layer_type is callable with the specified parameters
+        assert_is_callable_with(layer_type, parameters.keys())
 
         # convert Tuple[object, Distribution] to DistributionValue:
         for key, value_and_distribution in parameters.items():
