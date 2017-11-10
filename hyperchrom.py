@@ -100,17 +100,17 @@ class ParameterAllele(Allele):
             return self._collection[index_result]
 
     class SetDistribution(CollectionDistributionBase):
-        def __init__(self, *args, default=None):
-            assert len(args) > 0
+        def __init__(self, collection, default=None):
+            assert len(collection) > 0
 
-            default = default if default is not None else next(iter(args))
-            super().__init__(args, default)
+            default = default if default is not None else collection[0]
+            super().__init__(collection, default)
 
         def between(self, a, b):
             assert a in self
             assert b in self
 
-            return random.choice(self.__collection)
+            return random.choice(self._collection)
 
     class DistributionValue(tuple):
         """A named tuple (parameter value, parameter distribution) """
