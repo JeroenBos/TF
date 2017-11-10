@@ -206,9 +206,9 @@ class ParameterAllele(Allele):
         return ParameterAllele(self.layer_type, **result)
 
 
-class HyperChromosome:
+class Chromosome:
     """Equal iff reference equals. """
-    all_hc = {}
+    _all_hc = {}
 
     class _Key:
         """Makes the list type hashable. """
@@ -230,7 +230,7 @@ class HyperChromosome:
         super().__init__()
         self.__alleles = alleles
 
-        assert self._Key(alleles) not in __class__.all_hc
+        assert self._Key(alleles) not in __class__._all_hc
 
     @classmethod
     def create(cls, alleles: List[Allele]):
@@ -238,20 +238,20 @@ class HyperChromosome:
         # noinspection PyProtectedMember
         key = __class__._Key(alleles)
 
-        if key in cls.all_hc:
-            result = cls.all_hc[key]
+        if key in cls._all_hc:
+            result = cls._all_hc[key]
         else:
-            result = HyperChromosome(alleles)
-            cls.all_hc[key] = result
+            result = Chromosome(alleles)
+            cls._all_hc[key] = result
         return result
 
     def clone(self):
-        return HyperChromosome([allele for allele in self.__alleles])
+        return Chromosome([allele for allele in self.__alleles])
 
     @staticmethod
     def crossover(a, b):
-        assert isinstance(a, HyperChromosome)
-        assert isinstance(b, HyperChromosome)
+        assert isinstance(a, Chromosome)
+        assert isinstance(b, Chromosome)
         assert a != b
 
         def alleles_equal(alleles: Tuple[Allele, Allele]):
@@ -305,6 +305,6 @@ def ga(population_size, fitness, genome: Genome, *callbacks):
        fitness,
        genome.generate,
        genome.mutate,
-       HyperChromosome.crossover,
-       HyperChromosome.clone,
+       Chromosome.crossover,
+       Chromosome.clone,
        callbacks)
