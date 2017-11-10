@@ -64,6 +64,8 @@ class ParameterAllele(Allele):
     class CollectionDistributionBase(Distribution):
         def __init__(self, collection, default):
             assert default is not None
+            for element in collection:
+                assert isinstance(element, collections.Hashable)
 
             self._collection = collection
             self.__default = default
@@ -135,16 +137,8 @@ class ParameterAllele(Allele):
                    and self.value == other.value \
                    and self.distribution == other.distribution
 
-        _hashes = {}
         def __hash__(self):
-            try:
-                return hash(self.value)
-            except:
-                try:
-                    return __class__._hashes[(self.value,)]
-                except KeyError:
-                    __class__._hashes[(self.value,)] = len(__class__._hashes) + 1
-                    return len(__class__._hashes)
+            return hash(self.value)
 
     def __hash__(self):
         return self.__hash
