@@ -192,10 +192,9 @@ class HyperChromosome:
     """Equal iff reference equals. """
     all_hc = {}
 
-    def __init__(self, alleles: List[Allele], gene: Genome):
+    def __init__(self, alleles: List[Allele]):
         super().__init__()
         self.__alleles = alleles
-        self.gene = gene
 
         assert self not in __class__.all_hc
 
