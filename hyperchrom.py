@@ -308,9 +308,3 @@ def ga(population_size, fitness, genome: Genome, *callbacks):
        HyperChromosome.crossover,
        HyperChromosome.clone,
        callbacks)
-
-
-if __name__ == '__main__':
-    for _ in range(200):
-        x = list(HyperChromosome._randomly_mix([0, 1, 2], [3, 4, 5, 6, 7, 8, 9]))
-        print(x)
