@@ -76,9 +76,10 @@ class ParameterAllele(Allele):
         def __contains__(self, item):
             return item in self._collection
 
+        # noinspection PyProtectedMember
         def __eq__(self, other):
             return self is other or (isinstance(other, __class__)
-                                     and self._collection == other.__collection
+                                     and self._collection == other._collection
                                      and self.__default == other.__default)
 
         def between(self, a, b):
@@ -192,19 +193,38 @@ class HyperChromosome:
     """Equal iff reference equals. """
     all_hc = {}
 
+    class Key:
+        """Makes the list type hashable. """
+        def __init__(self, alleles):
+            self.__alleles = alleles
+            self.__hash = __class__._hash(alleles)
+
+        def __hash__(self):
+            return self.__hash
+
+        def __eq__(self, other):
+            return self.__alleles == other.__alleles
+
+        @staticmethod
+        def _hash(alleles):
+            return sum(hash(allele) for allele in alleles)
+
     def __init__(self, alleles: List[Allele]):
         super().__init__()
         self.__alleles = alleles
 
-        assert self not in __class__.all_hc
+        assert __class__.Key(alleles) not in __class__.all_hc
 
     @classmethod
     def create(cls, alleles: List[Allele]):
-        result = HyperChromosome(alleles)
-        if result in cls.all_hc:
-            result = cls.all_hc[result]
+        # key = hashable representation of alleles
+        key = __class__.Key(alleles)
+
+        if key in cls.all_hc:
+            result = cls.all_hc[key]
         else:
-            cls.all_hc[result] = result
+            result = HyperChromosome(alleles)
+            cls.all_hc[key] = result
         return result
 
     def clone(self):
@@ -253,13 +273,6 @@ class HyperChromosome:
                 ai += 1
             if random.uniform(0, 1) < len(b) / len(a):
                 bi += 1
-
-    def __hash__(self):
-        return __class__._hash(self.__alleles)
-
-    @staticmethod
-    def _hash(alleles):
-        return sum(hash(allele) for allele in alleles)
 
     def __eq__(self, other):
         return self is other

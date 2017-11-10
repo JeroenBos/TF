@@ -35,6 +35,25 @@ class ChromosomeTests(unittest.TestCase):
 
         assert crossed_result
 
+    def test_chromosome_reference_equality(self):
+        distribution = c.ParameterAllele.CollectionDistribution([10, 20, 50, 100])
+        allele1 = c.ParameterAllele(keras.layers.Dense, units=(10, distribution))
+
+        chromosome1 = c.HyperChromosome.create([allele1])
+        chromosome2 = c.HyperChromosome.create([allele1])
+
+        assert chromosome1 is chromosome2
+
+    def test_chromosome_negated_reference_equality(self):
+        distribution = c.ParameterAllele.CollectionDistribution([10, 20, 50, 100])
+        allele1 = c.ParameterAllele(keras.layers.Dense, units=(10, distribution))
+        allele2 = c.ParameterAllele(keras.layers.Dense, units=(100, distribution))
+
+        chromosome1 = c.HyperChromosome.create([allele1])
+        chromosome2 = c.HyperChromosome.create([allele2])
+
+        assert chromosome1 is not chromosome2
+
 
 if __name__ == '__main__':
     unittest.main()
