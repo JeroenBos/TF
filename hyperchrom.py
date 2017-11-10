@@ -210,7 +210,7 @@ class HyperChromosome:
     """Equal iff reference equals. """
     all_hc = {}
 
-    class Key:
+    class _Key:
         """Makes the list type hashable. """
         def __init__(self, alleles):
             self.__alleles = alleles
@@ -230,12 +230,13 @@ class HyperChromosome:
         super().__init__()
         self.__alleles = alleles
 
-        assert __class__.Key(alleles) not in __class__.all_hc
+        assert self._Key(alleles) not in __class__.all_hc
 
     @classmethod
     def create(cls, alleles: List[Allele]):
         # key = hashable representation of alleles
-        key = __class__.Key(alleles)
+        # noinspection PyProtectedMember
+        key = __class__._Key(alleles)
 
         if key in cls.all_hc:
             result = cls.all_hc[key]
