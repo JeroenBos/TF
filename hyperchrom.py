@@ -1,5 +1,4 @@
 from typing import List, Tuple, Dict, Union
-import keras
 import itertools
 import random
 import collections
@@ -9,7 +8,6 @@ class Genome:
     def __init__(self, space, fitness, max_learnable_params=-1):
         assert isinstance(space, dict)
         for key, value in space.items:
-            assert key.__module__ in [keras.layers, keras.activations]
             assert value is None or isinstance(value, tuple)
             for parameter in value:
                 assert isinstance(parameter[0], str)
