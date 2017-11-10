@@ -25,7 +25,7 @@ def assert_is_callable_with(f, parameter_names):
 
 
 class Genome:
-    def __init__(self, space, fitness, max_learnable_params=-1):
+    def __init__(self, space, max_learnable_params=-1):
         assert isinstance(space, dict)
         for key, value in space.items:
             assert value is None or isinstance(value, tuple)
@@ -37,7 +37,6 @@ class Genome:
 
         self.max_learnable_params = max_learnable_params
         self.space = space
-        self.fitness = fitness
 
     def mutate(self, chromosome):
         pass
