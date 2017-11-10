@@ -256,7 +256,11 @@ class HyperChromosome:
                 bi += 1
 
     def __hash__(self):
-        return sum(hash(allele) for allele in self.__alleles)
+        return __class__._hash(self.__alleles)
+
+    @staticmethod
+    def _hash(alleles):
+        return sum(hash(allele) for allele in alleles)
 
     def __eq__(self, other):
         return self is other
