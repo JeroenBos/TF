@@ -24,6 +24,13 @@ def assert_is_callable_with(f, parameter_names):
             raise AttributeError(f'{mandatory_parameter_name} must be provided')
 
 
+def product(iterable):
+    result = 1
+    for element in iterable:
+        result *= element
+    return result
+
+
 class Genome:
     def __init__(self, space, max_learnable_params=-1):
         assert isinstance(space, dict)
@@ -48,16 +55,21 @@ class Genome:
 # immutable
 class Allele:
     def __hash__(self):
-        raise NotImplementedError(f'subclass does not implement {__name__}')
+        raise NotImplementedError(f"subclass does not implement '__hash__'")
 
     def __eq__(self, other):
-        raise NotImplementedError(f'subclass does not implement {__name__}')
+        raise NotImplementedError(f"subclass does not implement '__eq__'")
 
     def can_crossover_with(self, other):
         return False
 
     def crossover(self, other):
-        raise NotImplementedError()
+        raise NotImplementedError(f"subclass does not implement 'crossover'")
+
+    def __init__(self, cumulative_mutation_count):
+        assert cumulative_mutation_count >= 0
+
+        self.cumulative_mutation_count = cumulative_mutation_count
 
 
 class ParameterAllele(Allele):
@@ -66,17 +78,21 @@ class ParameterAllele(Allele):
 
         @property
         def default(self):
-            raise NotImplementedError(f'subclass does not implement {__name__}')
+            raise NotImplementedError(f"subclass does not implement 'default'")
 
         def between(self, a, b):
             """ Returns a random element in this distribution between a and b (inclusive). """
-            raise NotImplementedError(f'subclass does not implement {__name__}')
+            raise NotImplementedError(f"subclass does not implement 'between'")
+
+        @property
+        def size(self):
+            raise NotImplementedError(f"subclass does not implement 'size'")
 
         def __contains__(self, item):
-            raise NotImplementedError(f'subclass does not implement {__name__}')
+            raise NotImplementedError(f"subclass does not implement '__contains__'")
 
         def __eq__(self, other):
-            raise NotImplementedError(f'subclass does not implement {__name__}')
+            raise NotImplementedError(f"subclass does not implement '__eq__'")
 
     class CollectionDistributionBase(Distribution):
         def __init__(self, collection, default):
@@ -89,6 +105,10 @@ class ParameterAllele(Allele):
 
         def default(self):
             return self.__default
+
+        @property
+        def size(self):
+            return len(self._collection)
 
         def __contains__(self, item):
             return item in self._collection
@@ -147,7 +167,7 @@ class ParameterAllele(Allele):
             return self[0]
 
         @property
-        def distribution(self):
+        def distribution(self) -> 'ParameterAllele.Distribution':
             return self[1]
 
         def __eq__(self, other):
@@ -170,7 +190,7 @@ class ParameterAllele(Allele):
                                  and self.parameters == other.parameters)
 
     def __init__(self, layer_type, **parameters: Union[DistributionValue, Tuple[object, Distribution]]):
-        super().__init__()
+
         assert_is_callable_with(layer_type, parameters.keys())
 
         # convert Tuple[object, Distribution] to DistributionValue:
@@ -184,8 +204,14 @@ class ParameterAllele(Allele):
                 parameters[key] = distribution.default
 
         self.layer_type = layer_type
-        self.parameters = parameters
+        self.parameters: Dict[__class__.DistributionValue] = parameters
         self.__hash = self._compute_hash()
+
+        cumulative_mutation_count = product(parameter.distribution.size for parameter in self.parameters.values())
+        # the current allele does not count, even though you technically won't mutate to it
+        cumulative_mutation_count -= 1
+
+        super().__init__(cumulative_mutation_count )
 
     def can_crossover_with(self, other):
         return isinstance(other, ParameterAllele) and self.layer_type == other.layer_type
@@ -212,6 +238,7 @@ class Chromosome:
 
     class _Key:
         """Makes the list type hashable. """
+
         def __init__(self, alleles):
             self.__alleles = alleles
             self.__hash = __class__._hash(alleles)
@@ -229,6 +256,7 @@ class Chromosome:
     def __init__(self, alleles: List[Allele]):
         super().__init__()
         self.__alleles = alleles
+        self._cumulative_mutation_count = sum(allele.cumulative_mutation_count for allele in self.__alleles)
 
         assert self._Key(alleles) not in __class__._all_hc
 

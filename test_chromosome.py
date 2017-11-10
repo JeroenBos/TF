@@ -58,7 +58,21 @@ class ChromosomeTests(unittest.TestCase):
         with self.assertRaises(AttributeError):
             c.ParameterAllele(lambda: None, does_not_exist=(0, c.ParameterAllele.CollectionDistribution([0])))
 
+    def test_allele_mutation_possibility_count(self):
+        distribution = c.ParameterAllele.CollectionDistribution([10, 20, 50, 100])
+        allele = c.ParameterAllele(keras.layers.Dense, units=(10, distribution), something_else=(20, distribution))
+
+        self.assertEqual(4 * 4 - 1, allele.cumulative_mutation_count)
+
+    def test_chromosome_mutation_possibility_count(self):
+        distribution = c.ParameterAllele.CollectionDistribution([10, 20, 50, 100])
+        allele = c.ParameterAllele(keras.layers.Dense, units=(10, distribution), something_else=(20, distribution))
+
+        chromosome = c.Chromosome([allele, allele])
+
+        self.assertEqual(4 * 4 - 1 + 4 * 4 - 1, chromosome._cumulative_mutation_count)
+
 
 if __name__ == '__main__':
-    ChromosomeTests().test_invalid_parameter_throws()
+    ChromosomeTests().test_allele_mutation_possibility_count()
     unittest.main()
