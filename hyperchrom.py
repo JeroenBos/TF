@@ -322,6 +322,10 @@ class Chromosome:
     def clone(self):
         return __class__.create([allele for allele in self.__alleles])
 
+    @property
+    def alleles(self):
+        return self.__alleles
+
     @classmethod
     def create(cls, alleles):
         return cls._all.create(alleles)
