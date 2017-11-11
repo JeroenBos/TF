@@ -68,11 +68,31 @@ class ChromosomeTests(unittest.TestCase):
         distribution = c.ParameterAllele.CollectionDistribution([10, 20, 50, 100])
         allele = c.ParameterAllele(keras.layers.Dense, units=(10, distribution), something_else=(20, distribution))
 
-        chromosome = c.Chromosome([allele, allele])
+        chromosome = c.Chromosome.create([allele, allele])
 
-        self.assertEqual(4 * 4 - 1 + 4 * 4 - 1, chromosome._cumulative_mutation_count)
+        self.assertEqual(4 * 4 - 1 + 4 * 4 - 1, chromosome.cumulative_mutation_count)
+
+    def test_genome_initialization(self):
+        distribution = c.ParameterAllele.CollectionDistribution([10, 20, 50, 100])
+        allele = c.ParameterAllele(keras.layers.Dense, units=(10, distribution))
+        chromosome = c.Chromosome.create([allele])
+
+        genome = c.Genome([chromosome])
+
+        self.assertTrue(len(genome.chromosomes), 1)
+
+    def test_genome_mutation(self):
+        distribution = c.ParameterAllele.CollectionDistribution([10, 20, 50, 100])
+        allele = c.ParameterAllele(keras.layers.Dense, units=(10, distribution))
+        chromosome = c.Chromosome.create([allele])
+        genome = c.Genome([chromosome])
+
+        mutated_genome = genome.mutate()
+
+        self.assertIsNot(genome, mutated_genome)
+
 
 
 if __name__ == '__main__':
-    ChromosomeTests().test_allele_mutation_possibility_count()
+    ChromosomeTests().test_genome_mutation()
     unittest.main()

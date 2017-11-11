@@ -1,8 +1,9 @@
 from typing import *
-import itertools
+from itertools import *
 import random
 import collections
 import inspect
+from immutable_cache import ImmutableCacheList
 
 
 def assert_is_callable_with(f, parameter_names):
@@ -24,6 +25,29 @@ def assert_is_callable_with(f, parameter_names):
             raise AttributeError(f'{mandatory_parameter_name} must be provided')
 
 
+def weighted_change(seq, f_weight, f_change, cumulative_weight=None):
+    elem_to_substitute = weighted_choice(seq, f_weight, cumulative_weight)
+    return (elem if elem is not elem_to_substitute else f_change(elem_to_substitute) for elem in seq)
+
+
+def weighted_choice(seq, f_weight, cumulative_weight=None):
+    cumulative_weight = cumulative_weight if cumulative_weight else sum(f_weight(elem) for elem in seq)
+    assert isinstance(cumulative_weight, int), f'type of cumulative_weight: {type(cumulative_weight)}'
+
+    cumulative_i = random.randint(0, cumulative_weight)
+
+    for elem in seq:
+        cumulative_i -= f_weight(elem)
+        if cumulative_i <= 0:
+            return elem
+    assert False
+
+
+def nth(iterable, n, default=None):
+    """Returns the nth item or a default value"""
+    return next(islice(iterable, n, None), default)
+
+
 def product(iterable):
     result = 1
     for element in iterable:
@@ -32,24 +56,37 @@ def product(iterable):
 
 
 class Genome:
-    def __init__(self, space, max_learnable_params=-1):
-        assert isinstance(space, dict)
-        for key, value in space.items:
-            assert value is None or isinstance(value, tuple)
-            for parameter in value:
-                assert isinstance(parameter[0], str)
-                for parameter_range in parameter[1:]:
-                    assert isinstance(parameter_range, list) or isinstance(parameter_range, tuple)
-        assert max_learnable_params == -1 or max_learnable_params > 0
+    _all = None
 
-        self.max_learnable_params = max_learnable_params
-        self.space = space
+    def __init__(self, chromosomes):
+        assert isinstance(chromosomes, list)
 
-    def mutate(self, chromosome):
-        pass
+        self.__chromosomes = chromosomes
+        self._cumulative_mutation_count = sum(chromosome.cumulative_mutation_count for chromosome in chromosomes)
+
+        assert chromosomes not in self._all
+
+    @classmethod
+    def create(cls, chromosomes):
+        return cls._all.create(chromosomes)
+
+    @property
+    def chromosomes(self):
+        return self.__chromosomes
+
+    def mutate(self):
+        new_chromosomes = weighted_change(self.chromosomes,
+                                          Chromosome.get_cumulative_mutation_count,
+                                          Chromosome.mutate,
+                                          self._cumulative_mutation_count)
+
+        return __class__(list(new_chromosomes))
 
     def generate(self):
         pass
+
+
+Genome._all = ImmutableCacheList(Genome)
 
 
 # immutable
@@ -66,10 +103,20 @@ class Allele:
     def crossover(self, other):
         raise NotImplementedError(f"subclass does not implement 'crossover'")
 
+    def mutate(self):
+        raise NotImplementedError(f"subclass {self.__class__.__name__} does not implement 'mutate'")
+
+    @property
+    def cumulative_mutation_count(self):
+        return self.__cumulative_mutation_count
+
+    def get_cumulative_mutation_count(self):
+        return self.__cumulative_mutation_count
+
     def __init__(self, cumulative_mutation_count):
         assert cumulative_mutation_count >= 0
 
-        self.cumulative_mutation_count = cumulative_mutation_count
+        self.__cumulative_mutation_count = cumulative_mutation_count
 
 
 class ParameterAllele(Allele):
@@ -78,21 +125,25 @@ class ParameterAllele(Allele):
 
         @property
         def default(self):
-            raise NotImplementedError(f"subclass does not implement 'default'")
+            raise NotImplementedError("subclass does not implement 'default'")
 
         def between(self, a, b):
             """ Returns a random element in this distribution between a and b (inclusive). """
-            raise NotImplementedError(f"subclass does not implement 'between'")
+            raise NotImplementedError("subclass does not implement 'between'")
+
+        def mutate(self, a):
+            """ Returns a value in the current distribution nearby (but not equal to) the specified element. """
+            raise NotImplementedError("subclass does not implement 'mutate'")
 
         @property
         def size(self):
-            raise NotImplementedError(f"subclass does not implement 'size'")
+            raise NotImplementedError("subclass does not implement 'size'")
 
         def __contains__(self, item):
-            raise NotImplementedError(f"subclass does not implement '__contains__'")
+            raise NotImplementedError("subclass does not implement '__contains__'")
 
         def __eq__(self, other):
-            raise NotImplementedError(f"subclass does not implement '__eq__'")
+            raise NotImplementedError("subclass does not implement '__eq__'")
 
     class CollectionDistributionBase(Distribution):
         def __init__(self, collection, default):
@@ -118,6 +169,14 @@ class ParameterAllele(Allele):
             return self is other or (isinstance(other, __class__)
                                      and self._collection == other._collection
                                      and self.__default == other.__default)
+
+        def mutate(self, a):
+            assert a in self
+            assert self.size != 1
+
+            collection_without_a = filterfalse(lambda e: e is not a, self._collection)
+            multiplicity_a = sum(1 for _ in collection_without_a)
+            return nth(collection_without_a, random.randint(0, self.size - 1 - multiplicity_a))
 
         def between(self, a, b):
             super().between(a, b)
@@ -178,6 +237,9 @@ class ParameterAllele(Allele):
         def __hash__(self):
             return hash(self.value)
 
+        def mutate(self):
+            return self.distribution.mutate(self.value), self.distribution
+
     def __hash__(self):
         return self.__hash
 
@@ -204,14 +266,14 @@ class ParameterAllele(Allele):
                 parameters[key] = distribution.default
 
         self.layer_type = layer_type
-        self.parameters: Dict[__class__.DistributionValue] = parameters
+        self.parameters: Dict[str, __class__.DistributionValue] = parameters
         self.__hash = self._compute_hash()
 
         cumulative_mutation_count = product(parameter.distribution.size for parameter in self.parameters.values())
         # the current allele does not count, even though you technically won't mutate to it
         cumulative_mutation_count -= 1
 
-        super().__init__(cumulative_mutation_count )
+        super().__init__(cumulative_mutation_count)
 
     def can_crossover_with(self, other):
         return isinstance(other, ParameterAllele) and self.layer_type == other.layer_type
@@ -231,50 +293,38 @@ class ParameterAllele(Allele):
             result[key] = value, distribution
         return ParameterAllele(self.layer_type, **result)
 
+    def mutate(self):
+        assert self.cumulative_mutation_count != 0
+
+        def get_weight(str_dis_val: Tuple[str, self.DistributionValue]):
+            return str_dis_val[1].distribution.size
+
+        new_parameters = weighted_change(self.parameters.items(),
+                                         get_weight,
+                                         self.DistributionValue.mutate,
+                                         self.cumulative_mutation_count)
+        new_parameters = dict(new_parameters)
+        return __class__(self.layer_type, **new_parameters)
+
 
 class Chromosome:
     """Equal iff reference equals. """
-    _all_hc = {}
-
-    class _Key:
-        """Makes the list type hashable. """
-
-        def __init__(self, alleles):
-            self.__alleles = alleles
-            self.__hash = __class__._hash(alleles)
-
-        def __hash__(self):
-            return self.__hash
-
-        def __eq__(self, other):
-            return self.__alleles == other.__alleles
-
-        @staticmethod
-        def _hash(alleles):
-            return sum(hash(allele) for allele in alleles)
+    _all = None
 
     def __init__(self, alleles: List[Allele]):
         super().__init__()
         self.__alleles = alleles
-        self._cumulative_mutation_count = sum(allele.cumulative_mutation_count for allele in self.__alleles)
+        self.__cumulative_mutation_count = sum(allele.cumulative_mutation_count for allele in self.__alleles)
 
-        assert self._Key(alleles) not in __class__._all_hc
-
-    @classmethod
-    def create(cls, alleles: List[Allele]):
-        # key = hashable representation of alleles
-        # noinspection PyProtectedMember
-        key = __class__._Key(alleles)
-
-        if key in cls._all_hc:
-            result = cls._all_hc[key]
-        else:
-            result = Chromosome(alleles)
-            cls._all_hc[key] = result
-        return result
+        assert alleles not in self._all, \
+            f'{self.__class__.__name__}s must be created through {self.__class__.__name__}.create(...)'
 
     def clone(self):
-        return Chromosome([allele for allele in self.__alleles])
+        return __class__.create([allele for allele in self.__alleles])
+
+    @classmethod
+    def create(cls, alleles):
+        return cls._all.create(alleles)
 
     @staticmethod
     def crossover(a, b):
@@ -285,8 +335,8 @@ class Chromosome:
         def alleles_equal(alleles: Tuple[Allele, Allele]):
             return alleles[0] == alleles[1]
 
-        head = list(allele for allele, _ in itertools.takewhile(alleles_equal, zip(a, b)))
-        tail = list(allele for allele, _ in itertools.takewhile(alleles_equal, zip(a[-1::], b[-1::])))
+        head = list(allele for allele, _ in takewhile(alleles_equal, zip(a, b)))
+        tail = list(allele for allele, _ in takewhile(alleles_equal, zip(a[-1::], b[-1::])))
 
         remaining = ((a[i], b[i]) for i in range(len(head), min(len(a), len(b)) - len(tail)))
         for allele_a, allele_b in remaining:
@@ -320,11 +370,32 @@ class Chromosome:
             if random.uniform(0, 1) < len(b) / len(a):
                 bi += 1
 
+    def mutate(self):
+        new_alleles = weighted_change(self.__alleles,
+                                      Allele.get_cumulative_mutation_count,
+                                      lambda allele: allele.mutate(),
+                                      self.__cumulative_mutation_count)
+        return self.create(new_alleles)
+
+    @property
+    def cumulative_mutation_count(self):
+        return self.__cumulative_mutation_count
+
+    def get_cumulative_mutation_count(self):
+        return self.cumulative_mutation_count
+
     def __eq__(self, other):
         return self is other
 
     def __iter__(self):
         return self.__alleles
+
+    def __hash__(self):
+        # noinspection PyUnresolvedReferences
+        return self.hash  # set in immutable_cache
+
+
+Chromosome._all = ImmutableCacheList(Chromosome)
 
 
 def ga(population_size, fitness, genome: Genome, *callbacks):

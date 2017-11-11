@@ -1,6 +1,7 @@
 from typing import *
 import unittest
 
+
 class ImmutableCache:
     def __init__(self, type_):
         assert isinstance(type_, type)
@@ -17,6 +18,7 @@ class ImmutableCache:
             return self._all[key]
         else:
             result = self.type_(*args, **kwargs)
+            result.hash = key.hash
             self._all[key] = result
             return result
 
@@ -25,9 +27,6 @@ class ImmutableCache:
 
 
 class ImmutableCacheList(ImmutableCache):
-    def create_key(self, *args, **kwargs):
-        return self._Key(*args, **kwargs)
-
     class _Key:
         """Makes the list type hashable. """
 
@@ -45,8 +44,15 @@ class ImmutableCacheList(ImmutableCache):
         def _hash(elements):
             return sum(hash(element) for element in elements)
 
+        @property
+        def hash(self):
+            return self.__hash
+
     def __init__(self, type_):
         super().__init__(type_)
+
+    def create_key(self, *args, **kwargs):
+        return self._Key(*args, **kwargs)
 
     def create(self, elements: List):
         return super().create(elements)
