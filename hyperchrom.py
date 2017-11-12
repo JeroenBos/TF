@@ -337,6 +337,7 @@ class GenomeBuilder:
     """Defines the constraints imposed on a genome and its alleles and their occurrences and order, etc. """
     def __init__(self, *chromosome_builders):
         assert len(chromosome_builders) > 0
+        assert all(isinstance(cb, int) for cb in chromosome_builders)
 
         self.chromosome_builders = chromosome_builders
 
@@ -350,6 +351,7 @@ class GenomeBuilder:
 
 
 def ga(population_size, fitness, builder: GenomeBuilder, *callbacks):
+    builder = builder if isinstance(builder, GenomeBuilder) else GenomeBuilder(builder)
     from ga import ga
     ga(population_size,
        fitness,
