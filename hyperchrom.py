@@ -50,40 +50,6 @@ def product(iterable):
     return result
 
 
-class Genome:
-    _all = None
-
-    def __init__(self, chromosomes):
-        assert isinstance(chromosomes, list)
-
-        self.__chromosomes = chromosomes
-        self._cumulative_mutation_count = sum(chromosome.cumulative_mutation_count for chromosome in chromosomes)
-
-        assert chromosomes not in self._all
-
-    @classmethod
-    def create(cls, chromosomes):
-        return cls._all.create(chromosomes)
-
-    @property
-    def chromosomes(self):
-        return self.__chromosomes
-
-    def mutate(self):
-        new_chromosomes = weighted_change(self.chromosomes,
-                                          Chromosome.get_cumulative_mutation_count,
-                                          Chromosome.mutate,
-                                          self._cumulative_mutation_count)
-
-        return __class__(list(new_chromosomes))
-
-    def generate(self):
-        pass
-
-
-Genome._all = ImmutableCacheList(Genome)
-
-
 # immutable
 class Allele:
     def __hash__(self):
@@ -224,7 +190,7 @@ class Chromosome:
             f'{self.__class__.__name__}s must be created through {self.__class__.__name__}.create(...)'
 
     def clone(self):
-        return __class__.create([allele for allele in self.__alleles])
+        return self  # Chromosome is immutable so
 
     @property
     def alleles(self):
@@ -281,7 +247,7 @@ class Chromosome:
     def mutate(self):
         new_alleles = weighted_change(self.__alleles,
                                       Allele.get_cumulative_mutation_count,
-                                      lambda allele: allele.mutate(),
+                                      lambda allele: allele.mutate(),  # Allele.mutate doesn't call overridden method
                                       self.__cumulative_mutation_count)
         return self.create(new_alleles)
 
@@ -306,12 +272,89 @@ class Chromosome:
 Chromosome._all = ImmutableCacheList(Chromosome)
 
 
-def ga(population_size, fitness, genome: Genome, *callbacks):
+class Genome:
+    _all = None
+
+    def __init__(self, chromosomes):
+        assert isinstance(chromosomes, list)
+
+        self.__chromosomes = chromosomes
+        self._cumulative_mutation_count = sum(chromosome.cumulative_mutation_count for chromosome in chromosomes)
+
+        assert chromosomes not in self._all
+
+    @classmethod
+    def create(cls, chromosomes):
+        return cls._all.create(chromosomes)
+
+    @property
+    def chromosomes(self):
+        return self.__chromosomes
+
+    def mutate(self, large_mutation_probability_and_mutate: Tuple[float, Callable[[Chromosome], Chromosome]] = None):
+
+        if large_mutation_probability_and_mutate and random.uniform(0, 1) < large_mutation_probability_and_mutate[0]:
+            get_weight: lambda ch: len(ch.alleles)
+            mutate = large_mutation_probability_and_mutate[1]
+        else:
+            get_weight = Chromosome.get_cumulative_mutation_count
+            mutate = Chromosome.mutate
+
+        new_chromosomes = weighted_change(self.chromosomes,
+                                          get_weight,
+                                          mutate,
+                                          self._cumulative_mutation_count)
+        return __class__.create(list(new_chromosomes))
+
+    @staticmethod
+    def crossover(self: 'Genome', other: 'Genome'):
+        assert len(self.chromosomes) == len(other.chromosomes)
+
+        return __class__.create(list(Chromosome.crossover(*pair) for pair in zip(self.chromosomes, other.chromosomes)))
+
+    def clone(self):
+        return self  # Genome is immutable so
+
+
+Genome._all = ImmutableCacheList(Genome)
+
+
+class ChromosomeBuilder:
+    """Defines the constraints imposed on a genome and its alleles and their occurrences and order, etc. """
+    def __init__(self, alleles):
+        self.alleles = alleles
+
+    def mutate_shape(self, chromosome: Chromosome):
+        """Mutates the shape of chromosomes, taking into account the constraints. """
+        raise NotImplementedError("subclass must implement 'mutate'")
+
+    def generate(self):
+        """Returns a random chromosome subject to the constraints imposed by this builder"""
+        raise NotImplementedError("subclass must implement 'generate'")
+
+
+class GenomeBuilder:
+    """Defines the constraints imposed on a genome and its alleles and their occurrences and order, etc. """
+    def __init__(self, *chromosome_builders):
+        assert len(chromosome_builders) > 0
+
+        self.chromosome_builders = chromosome_builders
+
+    @property
+    def n(self):
+        return len(self.chromosome_builders)
+
+    def generate(self):
+        """Returns a random genome subject to their constraints"""
+        return Genome.create([builder.generate() for builder in self.chromosome_builders])
+
+
+def ga(population_size, fitness, builder: GenomeBuilder, *callbacks):
     from ga import ga
     ga(population_size,
        fitness,
-       genome.generate,
-       genome.mutate,
-       Chromosome.crossover,
-       Chromosome.clone,
+       builder.generate,
+       Genome.mutate,
+       Genome.crossover,
+       Genome.clone,
        callbacks)

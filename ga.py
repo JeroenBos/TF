@@ -20,7 +20,7 @@ def ga(population_size,
     :param population_size: The size of the population.
     :param fitness: A function that takes a member and computes its fitness.
     :param generate: A function that takes nothing and generates a random member.
-    :param mutate: A function that takes a member and returns it in a mutated form.
+    :param mutate: A function that takes a member and returns a mutated form.
     :param crossover: A function that takes two members and returns a new combined member.
     :param clone: A function that deep clones a member.
     :param mutation_fraction: The fraction of the population that survives a generation that undergoes a mutation.
