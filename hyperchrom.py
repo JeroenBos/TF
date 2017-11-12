@@ -291,18 +291,11 @@ class Genome:
     def chromosomes(self):
         return self.__chromosomes
 
-    def mutate(self, large_mutation_probability_and_mutate: Tuple[float, Callable[[Chromosome], Chromosome]] = None):
-
-        if large_mutation_probability_and_mutate and random.uniform(0, 1) < large_mutation_probability_and_mutate[0]:
-            get_weight: lambda ch: len(ch.alleles)
-            mutate = large_mutation_probability_and_mutate[1]
-        else:
-            get_weight = Chromosome.get_cumulative_mutation_count
-            mutate = Chromosome.mutate
-
+    def mutate_small(self):
+        """Does a small mutation and returns the new genome"""
         new_chromosomes = weighted_change(self.chromosomes,
-                                          get_weight,
-                                          mutate,
+                                          Chromosome.get_cumulative_mutation_count,
+                                          Chromosome.mutate,
                                           self._cumulative_mutation_count)
         return __class__.create(list(new_chromosomes))
 
@@ -332,14 +325,19 @@ class ChromosomeBuilder:
         """Returns a random chromosome subject to the constraints imposed by this builder"""
         raise NotImplementedError("subclass must implement 'generate'")
 
+    def can_mutate(self):
+        """Returns whether this chromosome is not constrained to no change at all"""
+        return True
+
 
 class GenomeBuilder:
     """Defines the constraints imposed on a genome and its alleles and their occurrences and order, etc. """
-    def __init__(self, *chromosome_builders):
+    def __init__(self, *chromosome_builders, large_mutation_probability=0.2):
         assert len(chromosome_builders) > 0
         assert all(isinstance(cb, int) for cb in chromosome_builders)
 
         self.chromosome_builders = chromosome_builders
+        self.large_mutation_probability = large_mutation_probability
 
     @property
     def n(self):
@@ -349,6 +347,23 @@ class GenomeBuilder:
         """Returns a random genome subject to their constraints"""
         return Genome.create([builder.generate() for builder in self.chromosome_builders])
 
+    def mutate(self, genome: Genome):
+        """Does a small or large mutation and return the result"""
+
+        # this method is responsible for choosing whether a large or small mutation is done
+        if random.uniform(0, 1) < self.large_mutation_probability:
+            c, cb = weighted_choice(zip(genome.chromosomes, self.chromosome_builders), self._chromosome_large_mutation_weight)
+            mutated_c = cb.mutate_shape()
+            return Genome.create(list(c_ if c is not c_ else mutated_c for c_ in genome.chromosomes))
+        else:
+            return genome.mutate_small()
+
+    @staticmethod
+    def _chromosome_large_mutation_weight(chromosome, chromosome_builder):
+        if chromosome_builder.can_mutate:
+            return len(chromosome.alleles)
+        return 0
+
 
 def ga(population_size, fitness, builder: GenomeBuilder, *callbacks):
     builder = builder if isinstance(builder, GenomeBuilder) else GenomeBuilder(builder)
@@ -356,7 +371,7 @@ def ga(population_size, fitness, builder: GenomeBuilder, *callbacks):
     ga(population_size,
        fitness,
        builder.generate,
-       Genome.mutate,
+       builder.mutate,
        Genome.crossover,
        Genome.clone,
        callbacks)

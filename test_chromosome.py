@@ -88,7 +88,7 @@ class ChromosomeTests(unittest.TestCase):
         chromosome = c.Chromosome.create([allele])
         genome = c.Genome([chromosome])
 
-        mutated_genome = genome.mutate()
+        mutated_genome = genome.mutate_small()
 
         self.assertIsNot(genome, mutated_genome)
 
