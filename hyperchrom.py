@@ -317,7 +317,7 @@ class ChromosomeBuilder:
     def __init__(self, alleles):
         self.alleles = alleles
 
-    def mutate_shape(self, chromosome: Chromosome):
+    def mutate_large(self, chromosome: Chromosome):
         """Mutates the shape of chromosomes, taking into account the constraints. """
         raise NotImplementedError("subclass must implement 'mutate'")
 
@@ -353,7 +353,7 @@ class GenomeBuilder:
         # this method is responsible for choosing whether a large or small mutation is done
         if random.uniform(0, 1) < self.large_mutation_probability:
             c, cb = weighted_choice(zip(genome.chromosomes, self.chromosome_builders), self._chromosome_large_mutation_weight)
-            mutated_c = cb.mutate_shape()
+            mutated_c = cb.mutate_large()
             return Genome.create(list(c_ if c is not c_ else mutated_c for c_ in genome.chromosomes))
         else:
             return genome.mutate_small()
