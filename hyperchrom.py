@@ -365,7 +365,7 @@ class GenomeBuilder:
         return 0
 
 
-def ga(population_size, fitness, builder: GenomeBuilder, *callbacks):
+def ga(population_size, fitness, builder: Union[GenomeBuilder, ChromosomeBuilder], *callbacks):
     builder = builder if isinstance(builder, GenomeBuilder) else GenomeBuilder(builder)
     from ga import ga
     ga(population_size,
