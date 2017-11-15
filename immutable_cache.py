@@ -10,7 +10,7 @@ class ImmutableCache:
         self.type_ = type_
 
     def create_key(self, *args, **kwargs):
-        raise NotImplementedError("subclass must implement 'create_key'")
+        return self._Key(self.compute_hash, *args, **kwargs)
 
     def create(self, *args, **kwargs):
         key = self.create_key(*args, **kwargs)
@@ -25,37 +25,51 @@ class ImmutableCache:
     def __contains__(self, *args):
         return self.create_key(*args) in self._all
 
+    @staticmethod
+    def compute_hash(*args, **kwargs):
+        result = sum(hash(arg) if arg is not None else 0 for arg in args) \
+             + sum(hash(key) * (hash(value) if value is not None else -5531) for key, value in kwargs.items())
+        assert isinstance(result, int)
+        return result
 
-class ImmutableCacheList(ImmutableCache):
     class _Key:
-        """Makes the list type hashable. """
-
-        def __init__(self, elements):
-            self.__elements = elements
-            self.__hash = __class__._hash(elements)
+        def __init__(self, compute_hash, *args, **kwargs):
+            self.__args = args
+            self.__kwargs = kwargs
+            self.__hash = compute_hash(*args, **kwargs)
+            assert isinstance(self.__hash, int)
 
         def __hash__(self):
             return self.__hash
 
         def __eq__(self, other):
-            return self.__elements == other.__elements
-
-        @staticmethod
-        def _hash(elements):
-            return sum(hash(element) for element in elements)
+            # to override this method, the subclass ImmutableClass could create its own _Key class
+            # but I don't think it's going to be necessary any time soon
+            return self.__args == other.__args and self.__kwargs == other.__kwargs
 
         @property
         def hash(self):
             return self.__hash
 
+
+class ImmutableCacheList(ImmutableCache):
     def __init__(self, type_):
         super().__init__(type_)
 
-    def create_key(self, *args, **kwargs):
-        return self._Key(*args, **kwargs)
+    def create_key(self, elements):
+        return super().create_key(*elements)
 
-    def create(self, elements: List):
-        return super().create(elements)
+
+class ImmutableCacheParameterAllele(ImmutableCache): #TODO: Make more generic
+
+    def __init__(self, type_):
+        super().__init__(type_)
+
+    def create_key(self, layer_type, **parameters):
+        return super().create_key(layer_type, **parameters)
+
+    def create(self, layer_type, **parameters):
+        return super().create(layer_type, **parameters)
 
 
 class Tests(unittest.TestCase):

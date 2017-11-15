@@ -2,7 +2,7 @@ from typing import *
 from itertools import *
 import random
 import inspect
-from immutable_cache import ImmutableCacheList
+from immutable_cache import ImmutableCacheList, ImmutableCacheParameterAllele
 from distribution import Distribution
 
 
@@ -25,9 +25,38 @@ def assert_is_callable_with(f, parameter_names):
             raise AttributeError(f'{mandatory_parameter_name} must be provided')
 
 
+def _mutate(builders, elements, get_weight, perform_mutation, cumulative_weight=None):
+    """
+    :param builders: The builders of the elements to perform the mutation on
+    :param builders: The elements to perform the mutation on
+    :param get_weight: A function taking a builder and element returning the relative weight that is should be mutated
+    :param perform_mutation: The function taking a builder and element  returning the mutated form
+    :return: The list of new elements
+    """
+
+    assert all(builder for builder in builders)
+    assert all(element for element in elements)
+    element_type = type(next(iter(elements)))
+
+    def get_element(chromosome_builder):
+        return elements[builders.index(chromosome_builder)]
+
+    # contains the builders of all chromosomes that didn't change, and the chromosome that did change
+    builders_and_new_element = weighted_change(builders,
+                                               lambda builder: get_weight(builder, get_element(builder)),
+                                               lambda builder: perform_mutation(builder, get_element(builder)),
+                                               cumulative_weight)
+    new_elements = [x if isinstance(x, element_type) else get_element(x) for x in builders_and_new_element]
+    return new_elements
+
+
 def weighted_change(seq, f_weight, f_change, cumulative_weight=None):
-    elem_to_substitute = weighted_choice(seq, f_weight, cumulative_weight)
-    return (elem if elem is not elem_to_substitute else f_change(elem_to_substitute) for elem in seq)
+    elem_index_to_substitute = weighted_choice(seq, f_weight, cumulative_weight)
+    return with_element_at(seq, elem_index_to_substitute, f_change)
+
+
+def with_element_at(seq, index, get_value):
+    return (elem if i is not index else get_value(elem) for i, elem in enumerate(seq))
 
 
 def weighted_choice(seq, f_weight, cumulative_weight=None):
@@ -36,10 +65,12 @@ def weighted_choice(seq, f_weight, cumulative_weight=None):
 
     cumulative_i = random.randint(0, cumulative_weight)
 
+    result = 0
     for elem in seq:
         cumulative_i -= f_weight(elem)
         if cumulative_i <= 0:
-            return elem
+            return result
+        result += 1
     assert False
 
 
@@ -53,128 +84,51 @@ def product(iterable):
 # immutable
 class Allele:
     def __hash__(self):
-        raise NotImplementedError(f"subclass does not implement '__hash__'")
+        raise NotImplementedError("subclass does not implement '__hash__'")
 
     def __eq__(self, other):
-        raise NotImplementedError(f"subclass does not implement '__eq__'")
-
-    def can_crossover_with(self, other):
-        return False
-
-    def crossover(self, other):
-        raise NotImplementedError(f"subclass does not implement 'crossover'")
-
-    def mutate(self):
-        raise NotImplementedError(f"subclass {self.__class__.__name__} does not implement 'mutate'")
-
-    @property
-    def cumulative_mutation_count(self):
-        return self.__cumulative_mutation_count
-
-    def get_cumulative_mutation_count(self):
-        return self.__cumulative_mutation_count
-
-    def __init__(self, cumulative_mutation_count):
-        assert cumulative_mutation_count >= 0
-
-        self.__cumulative_mutation_count = cumulative_mutation_count
+        raise NotImplementedError("subclass does not implement '__eq__'")
 
 
 class ParameterAllele(Allele):
-    class DistributionValue(tuple):
-        """A named tuple (parameter value, parameter distribution) """
-
-        # noinspection PyInitNewSignature,PyArgumentList
-        def __new__(cls, value, distribution):
-            assert isinstance(distribution, Distribution)
-            assert value in distribution
-
-            return super(ParameterAllele.DistributionValue, cls).__new__(cls, (value, distribution))
-
-        @property
-        def value(self):
-            return self[0]
-
-        @property
-        def distribution(self) -> 'Distribution':
-            return self[1]
-
-        def __eq__(self, other):
-            return isinstance(other, __class__) \
-                   and self.value == other.value \
-                   and self.distribution == other.distribution
-
-        def __hash__(self):
-            return hash(self.value)
-
-        def mutate(self):
-            return self.distribution.mutate(self.value), self.distribution
+    _all = None
 
     def __hash__(self):
-        return self.__hash
-
-    def _compute_hash(self):
-        return sum(hash(name) * hash(value) for name, value in self.parameters.items())
+        assert self.hash, f'A {__name__} was created from __init__ rather than create(..)'
+        return self.hash
 
     def __eq__(self, other):
         return self is other or (isinstance(other, __class__)
                                  and self.layer_type is other.layer_type
                                  and self.parameters == other.parameters)
 
-    def __init__(self, layer_type, **parameters: Union[DistributionValue, Tuple[object, Distribution]]):
-
+    def __init__(self, layer_type, **parameters):
+        """
+        :param layer_type: The callable creating the layer.
+        :param parameters: Pairs of names of parameters to layer_type.__call__. None is allowed as value.
+        """
+        assert len(parameters) > 0
+        assert all(not isinstance(parameter, Distribution) for parameter in parameters.values())
+        assert all(
+            not isinstance(p, tuple) or all(not isinstance(t, Distribution) for t in p) for p in parameters.values())
         assert_is_callable_with(layer_type, parameters.keys())
+        assert inspect.getouterframes(inspect.currentframe())[1].function == 'create',\
+            "You're not allowed to call __init__ directly; call create(..)"
 
-        # convert Tuple[object, Distribution] to DistributionValue:
-        for key, value_and_distribution in parameters.items():
-            if not isinstance(value_and_distribution, __class__.DistributionValue):
-                assert isinstance(value_and_distribution, tuple) and len(value_and_distribution) == 2
-                parameters[key] = __class__.DistributionValue(value_and_distribution[0], value_and_distribution[1])
-
-        for key, (value, distribution) in parameters.items():
-            if value is None:
-                parameters[key] = distribution.default
-
+        self.builder = None  # set by create method
+        self.hash = None  # set by create method
         self.layer_type = layer_type
-        self.parameters: Dict[str, __class__.DistributionValue] = parameters
-        self.__hash = self._compute_hash()
+        self.parameters = parameters
 
-        cumulative_mutation_count = product(parameter.distribution.size for parameter in self.parameters.values())
-        # the current allele does not count, even though you technically won't mutate to it
-        cumulative_mutation_count -= 1
+    @classmethod
+    def create(cls, builder, layer_type, **parameters):
+        result = cls._all.create(layer_type, **parameters)
+        result.builder = builder
+        result.hash = ImmutableCacheParameterAllele.compute_hash(layer_type, **parameters)
+        return result
 
-        super().__init__(cumulative_mutation_count)
 
-    def can_crossover_with(self, other):
-        return isinstance(other, ParameterAllele) and self.layer_type == other.layer_type
-
-    def crossover(self, other: 'ParameterAllele'):
-        assert self.can_crossover_with(other)
-
-        # randomly select half of the unshared parameters
-        nonoverlap = set(self.parameters.keys()).symmetric_difference(other.parameters.keys())
-        result = {key: self.parameters[key] for key in nonoverlap if random.randint(0, 1) == 0}
-
-        # select all parameters that are equal, and those that are unequal, choose something in between (inclusive)
-        overlap = self.parameters.keys() & other.parameters.keys()
-        for key in overlap:
-            distribution = self.parameters[key].distribution
-            value = distribution.between(self.parameters[key].value, other.parameters[key].value)
-            result[key] = value, distribution
-        return ParameterAllele(self.layer_type, **result)
-
-    def mutate(self):
-        assert self.cumulative_mutation_count != 0
-
-        def get_weight(str_dis_val: Tuple[str, self.DistributionValue]):
-            return str_dis_val[1].distribution.size
-
-        new_parameters = weighted_change(self.parameters.items(),
-                                         get_weight,
-                                         self.DistributionValue.mutate,
-                                         self.cumulative_mutation_count)
-        new_parameters = dict(new_parameters)
-        return __class__(self.layer_type, **new_parameters)
+ParameterAllele._all = ImmutableCacheParameterAllele(ParameterAllele)
 
 
 class Chromosome:
@@ -182,23 +136,173 @@ class Chromosome:
     _all = None
 
     def __init__(self, alleles: List[Allele]):
+        assert all(allele for allele in alleles)
+        assert inspect.getouterframes(inspect.currentframe())[1].function == 'create',\
+            "You're not allowed to call __init__ directly; call create(..)"
         super().__init__()
-        self.__alleles = alleles
-        self.__cumulative_mutation_count = sum(allele.cumulative_mutation_count for allele in self.__alleles)
-
-        assert alleles not in self._all, \
-            f'{self.__class__.__name__}s must be created through {self.__class__.__name__}.create(...)'
+        self.alleles = alleles
 
     def clone(self):
         return self  # Chromosome is immutable so
 
-    @property
-    def alleles(self):
-        return self.__alleles
-
     @classmethod
     def create(cls, alleles):
         return cls._all.create(alleles)
+
+    def __eq__(self, other):
+        return self is other
+
+    def __hash__(self):
+        # noinspection PyUnresolvedReferences
+        return self.hash  # set in immutable_cache
+
+
+Chromosome._all = ImmutableCacheList(Chromosome)
+
+
+class Genome:
+    _all = None
+
+    def __init__(self, chromosomes):
+        assert isinstance(chromosomes, list)
+        assert inspect.getouterframes(inspect.currentframe())[1].function == 'create',\
+            "You're not allowed to call __init__ directly; call create(..)"
+
+        self.chromosomes = chromosomes
+
+    @classmethod
+    def create(cls, chromosomes):
+        return cls._all.create(chromosomes)
+
+    def clone(self):
+        return self  # Genome is immutable so
+
+
+Genome._all = ImmutableCacheList(Genome)
+
+
+class AlleleBuilder:
+    def __init__(self, cumulative_mutation_weight):
+        """
+        :param cumulative_mutation_weight: The number mutations an allele built by this builder can undergo.
+        """
+        self.cumulative_mutation_weight = cumulative_mutation_weight
+
+    def mutate(self, allele):
+        raise NotImplementedError("subclass must implement 'mutate'")
+
+
+class ParameterAlleleBuilder(AlleleBuilder):
+    def __init__(self, layer_type, **distributions):
+        assert len(distributions) > 0
+        assert all(isinstance(distribution, Distribution) for distribution in distributions.values())
+        assert_is_callable_with(layer_type, distributions.keys())
+
+        self.layer_type = layer_type
+        self.distributions = distributions
+
+        cumulative_mutation_weight = product(distribution.size for distribution in self.distributions.values())
+        # the current allele does not count, even though you technically won't mutate to it
+        cumulative_mutation_weight -= 1
+        super().__init__(cumulative_mutation_weight)
+
+    def mutate(self, allele):
+        def get_weight(param_value_pair):
+            parameter, value = param_value_pair
+            distribution = self.distributions[parameter]
+            return distribution.size
+
+        def mutate(param_value_pair):
+            parameter, value = param_value_pair
+            distribution = self.distributions[parameter]
+            new_value = distribution.mutate(value)
+            assert new_value != value
+            return parameter, new_value
+
+        new_parameters = dict(weighted_change(allele.parameters.items(),
+                                              get_weight,
+                                              mutate,
+                                              self.cumulative_mutation_weight))
+
+        return ParameterAllele.create(self, allele.layer_type, **new_parameters)
+
+    def crossover(self, a: 'ParameterAllele', b: 'ParameterAllele'):
+        assert self.can_crossover_with(a, b)
+        assert all(key in self.distributions for key in chain(a.parameters.keys(), b.parameters.keys()))
+
+        # randomly select half of the unshared parameters
+        nonoverlap = set(a.parameters.keys()).symmetric_difference(b.parameters.keys())
+        result = {key: a.parameters[key] for key in nonoverlap if random.randint(0, 1) == 0}
+
+        # select all parameters that are equal, and those that are unequal, choose something in between (inclusive)
+        overlap = a.parameters.keys() & b.parameters.keys()
+        for key in overlap:
+            distribution = self.distributions[key]
+            result[key] = distribution.between(a.parameters[key], b.parameters[key])
+        return ParameterAllele.create(self, self.layer_type, **result)
+
+    def generate(self):
+        """
+        Draws a random element from this distribution.
+        """
+        parameters = {name: distribution.random() for name, distribution in self.distributions.items()}
+        return ParameterAllele.create(self.layer_type, **parameters)
+
+    def default(self):
+        """
+        Gets the allele with default parameters.
+        """
+        parameters = {name: distribution.default for name, distribution in self.distributions.items()}
+        return ParameterAllele.create(self.layer_type, **parameters)
+
+    def create(self, **parameters):
+        assert all(parameter in self.distributions for parameter in parameters), \
+            f'Unknown parameter specified: {next(p for p in parameters if parameters not in self.distributions)}'
+
+        for name, distribution in self.distributions.items():
+            if name not in parameters:
+                parameters[name] = distribution.default
+
+        return ParameterAllele.create(self, self.layer_type, **parameters)
+
+    @staticmethod
+    def can_crossover_with(a: ParameterAllele, b: ParameterAllele):
+        return isinstance(a, ParameterAllele) and isinstance(b, ParameterAllele) and a.layer_type == b.layer_type
+
+
+class ChromosomeBuilder:
+    """Defines the constraints imposed on a genome and its alleles and their occurrences and order, etc. """
+
+    def __init__(self, allele_builders: Iterable[ParameterAlleleBuilder]):
+        self.allele_builders = allele_builders
+
+    def mutate_large(self, chromosome: Chromosome):
+        """Mutates the shape of chromosomes, taking into account the constraints. """
+        raise NotImplementedError("subclass must implement 'mutate_large'")
+
+    def mutate_small(self, chromosome: Chromosome):
+        return Chromosome.create(_mutate(self.allele_builders,
+                                         chromosome.alleles,
+                                         lambda builder, allele: builder.cumulative_mutation_weight,
+                                         lambda builder, allele: builder.mutate(allele)))
+
+    def generate(self):
+        """Returns a random chromosome subject to the constraints imposed by this builder"""
+        raise NotImplementedError("subclass must implement 'generate'")
+
+    @staticmethod
+    def can_mutate():
+        """Returns whether this chromosome is not constrained to no change at all"""
+        return True
+
+    def get_large_mutation_weight(self, chromosome):
+        if self.can_mutate:
+            return len(chromosome.alleles)
+        return 0
+
+    # noinspection PyMethodMayBeStatic
+    def get_small_mutation_weight(self, chromosome):
+        return sum(allele.builder.cumulative_mutation_weight for allele in chromosome.alleles)
 
     @staticmethod
     def crossover(a, b):
@@ -227,7 +331,7 @@ class Chromosome:
 
         middle = list(__class__._randomly_mix(remaining_a, remaining_b))
 
-        return __class__.create(head + middle + tail)
+        return Chromosome.create(head + middle + tail)
 
     @staticmethod
     def _randomly_mix(a: list, b: list):
@@ -244,97 +348,18 @@ class Chromosome:
             if random.uniform(0, 1) < len(b) / len(a):
                 bi += 1
 
-    def mutate(self):
-        new_alleles = weighted_change(self.__alleles,
-                                      Allele.get_cumulative_mutation_count,
-                                      lambda allele: allele.mutate(),  # Allele.mutate doesn't call overridden method
-                                      self.__cumulative_mutation_count)
-        return self.create(new_alleles)
-
-    @property
-    def cumulative_mutation_count(self):
-        return self.__cumulative_mutation_count
-
-    def get_cumulative_mutation_count(self):
-        return self.cumulative_mutation_count
-
-    def __eq__(self, other):
-        return self is other
-
-    def __iter__(self):
-        return self.__alleles
-
-    def __hash__(self):
-        # noinspection PyUnresolvedReferences
-        return self.hash  # set in immutable_cache
-
-
-Chromosome._all = ImmutableCacheList(Chromosome)
-
-
-class Genome:
-    _all = None
-
-    def __init__(self, chromosomes):
-        assert isinstance(chromosomes, list)
-
-        self.__chromosomes = chromosomes
-        self._cumulative_mutation_count = sum(chromosome.cumulative_mutation_count for chromosome in chromosomes)
-
-        assert chromosomes not in self._all
-
-    @classmethod
-    def create(cls, chromosomes):
-        return cls._all.create(chromosomes)
-
-    @property
-    def chromosomes(self):
-        return self.__chromosomes
-
-    def mutate_small(self):
-        """Does a small mutation and returns the new genome"""
-        new_chromosomes = weighted_change(self.chromosomes,
-                                          Chromosome.get_cumulative_mutation_count,
-                                          Chromosome.mutate,
-                                          self._cumulative_mutation_count)
-        return __class__.create(list(new_chromosomes))
-
     @staticmethod
-    def crossover(self: 'Genome', other: 'Genome'):
-        assert len(self.chromosomes) == len(other.chromosomes)
-
-        return __class__.create(list(Chromosome.crossover(*pair) for pair in zip(self.chromosomes, other.chromosomes)))
-
-    def clone(self):
-        return self  # Genome is immutable so
-
-
-Genome._all = ImmutableCacheList(Genome)
-
-
-class ChromosomeBuilder:
-    """Defines the constraints imposed on a genome and its alleles and their occurrences and order, etc. """
-    def __init__(self, alleles):
-        self.alleles = alleles
-
-    def mutate_large(self, chromosome: Chromosome):
-        """Mutates the shape of chromosomes, taking into account the constraints. """
-        raise NotImplementedError("subclass must implement 'mutate'")
-
-    def generate(self):
-        """Returns a random chromosome subject to the constraints imposed by this builder"""
-        raise NotImplementedError("subclass must implement 'generate'")
-
-    def can_mutate(self):
-        """Returns whether this chromosome is not constrained to no change at all"""
-        return True
+    def create(alleles: List[Allele]):
+        result: Chromosome = Chromosome.create(alleles)
+        return result
 
 
 class GenomeBuilder:
     """Defines the constraints imposed on a genome and its alleles and their occurrences and order, etc. """
+
     def __init__(self, *chromosome_builders, large_mutation_probability=0.2):
         assert len(chromosome_builders) > 0
-        assert all(isinstance(cb, int) for cb in chromosome_builders)
+        assert all(isinstance(cb, ChromosomeBuilder) for cb in chromosome_builders)
 
         self.chromosome_builders = chromosome_builders
         self.large_mutation_probability = large_mutation_probability
@@ -348,21 +373,38 @@ class GenomeBuilder:
         return Genome.create([builder.generate() for builder in self.chromosome_builders])
 
     def mutate(self, genome: Genome):
-        """Does a small or large mutation and return the result"""
+        """Does a small or large mutation and returns the result"""
 
         # this method is responsible for choosing whether a large or small mutation is done
         if random.uniform(0, 1) < self.large_mutation_probability:
-            c, cb = weighted_choice(zip(genome.chromosomes, self.chromosome_builders), self._chromosome_large_mutation_weight)
-            mutated_c = cb.mutate_large()
-            return Genome.create(list(c_ if c is not c_ else mutated_c for c_ in genome.chromosomes))
+            return self._mutate_large(genome)
         else:
-            return genome.mutate_small()
+            return self._mutate_small(genome)
 
-    @staticmethod
-    def _chromosome_large_mutation_weight(chromosome, chromosome_builder):
-        if chromosome_builder.can_mutate:
-            return len(chromosome.alleles)
-        return 0
+    def _mutate_small(self, genome):
+        """Does a small mutation and returns the new genome"""
+        return Genome.create(_mutate(self.chromosome_builders,
+                                     genome.chromosomes,
+                                     get_weight=ChromosomeBuilder.get_small_mutation_weight,
+                                     perform_mutation=ChromosomeBuilder.mutate_small,
+                                     cumulative_weight=None))
+
+    def _mutate_large(self, genome):
+        """Does a small mutation and returns the new genome"""
+        return Genome.create(_mutate(self.chromosome_builders,
+                                     genome.chromosomes,
+                                     get_weight=ChromosomeBuilder.get_large_mutation_weight,
+                                     perform_mutation=ChromosomeBuilder.mutate_large,
+                                     cumulative_weight=None))
+
+    def crossover(self, a: 'Genome', b: 'Genome'):
+        assert len(a.chromosomes) == len(b.chromosomes)
+
+        def _implementation():
+            for builder, c1, c2 in zip(self.chromosome_builders, a.chromosomes, b.chromosomes):
+                yield builder.crossover(c1, c2)
+
+        return Genome.create(list(_implementation()))
 
 
 def ga(population_size, fitness, builder: Union[GenomeBuilder, ChromosomeBuilder], *callbacks):
@@ -372,6 +414,6 @@ def ga(population_size, fitness, builder: Union[GenomeBuilder, ChromosomeBuilder
        fitness,
        builder.generate,
        builder.mutate,
-       Genome.crossover,
+       builder.crossover,
        Genome.clone,
        callbacks)

@@ -2,13 +2,11 @@ from hyperchrom import *
 from keras.layers import *
 from itertools import *
 
-
 _cached_nns = {}
 
 
 def _create_layer(allele: ParameterAllele):
-    parameters = {name: value for name, (value, _distribution) in allele.parameters.items()}
-    return allele.layer_type(**parameters)
+    return allele.layer_type(**allele.parameters)
 
 
 def genome_to_nn(genome: Genome):
@@ -32,6 +30,13 @@ def chromosome_to_nn(chromosome: Chromosome):
     return layers
 
 
+class ChromokerasBuilder(ChromosomeBuilder):
+    def __init__(self):
+        super().__init__()
 
 
+    def generate(self):
+        pass
 
+    def mutate_large(self, chromosome: Chromosome):
+        pass

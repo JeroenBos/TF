@@ -33,6 +33,10 @@ class Distribution:
     def __eq__(self, other):
         raise NotImplementedError("subclass does not implement '__eq__'")
 
+    def random(self):
+        """Draws a random element from this distribution"""
+        raise NotImplementedError("subclass does not implement 'random'")
+
 
 class CollectionDistributionBase(Distribution):
     def __init__(self, collection, default):
@@ -43,6 +47,7 @@ class CollectionDistributionBase(Distribution):
         self._collection = collection
         self.__default = default
 
+    @property
     def default(self):
         return self.__default
 
@@ -69,6 +74,9 @@ class CollectionDistributionBase(Distribution):
 
     def between(self, a, b):
         super().between(a, b)
+
+    def random(self):
+        return random.choice(self._collection)
 
 
 class CollectionDistribution(CollectionDistributionBase):
