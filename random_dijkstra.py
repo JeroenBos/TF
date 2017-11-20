@@ -78,6 +78,7 @@ class RandomWalkSavingAllRoutes(RandomWalk):
         Gets a route by walking randomly from the root of a tree to any destination node,
         and maintains all routes to that destination rather than an arbitrary one.
     """
+
     def push(self, current, new):
         self.open[new] = current
 
@@ -101,6 +102,7 @@ class SemiRandomDijkstra(RandomWalk):
     """
     Implements a depth first random walk. I don't know why I called it dijkstra, because there are no costs.
     """
+
     class Node:
         def __init__(self, current, new, new_comparable):
             self.__current = current
@@ -119,14 +121,14 @@ class SemiRandomDijkstra(RandomWalk):
         def __lt__(self, other):
             assert isinstance(other, __class__)
             return self.__new_comparable < other.__new_comparable \
-                or (self.__new_comparable == other.__new_comparable
-                    and self.__randomization < other.__randomization)
+                   or (self.__new_comparable == other.__new_comparable
+                       and self.__randomization < other.__randomization)
 
         def __gt__(self, other):
             assert isinstance(other, __class__)
             return self.__new_comparable > other.__new_comparable \
-                or (self.__new_comparable == other.__new_comparable
-                    and self.__randomization > other.__randomization)
+                   or (self.__new_comparable == other.__new_comparable
+                       and self.__randomization > other.__randomization)
 
         def __getitem__(self, item):
             if item == 0:
@@ -139,7 +141,7 @@ class SemiRandomDijkstra(RandomWalk):
         def __repr__(self):
             return f'Node({self.current}->{self.new})'
 
-    def __init__(self, 
+    def __init__(self,
                  start,
                  get_neighbors,
                  f_is_dest,
@@ -212,14 +214,15 @@ class SemiRandomDijkstraSavingAllRoutes(SemiRandomDijkstra):
         multiplicities = self._get_all_closed_multiplicities()
         destinations = list(filter(self._is_dest, self.closed.keys()))
 
-        while True:
-            route = []
-            nodes_from = destinations
-            while nodes_from[0]:
-                chosen_node = random.choices(nodes_from, list(map(multiplicities.__getitem__, nodes_from)))[0]
-                route.append(chosen_node)
-                nodes_from = self.closed[route[-1]]
-            yield tuple(route)
+        if len(destinations) != 0:
+            while True:
+                route = []
+                nodes_from = destinations
+                while nodes_from[0]:
+                    chosen_node = random.choices(nodes_from, list(map(multiplicities.__getitem__, nodes_from)))[0]
+                    route.append(chosen_node)
+                    nodes_from = self.closed[route[-1]]
+                yield tuple(route)
 
     def _get_all_closed_multiplicities(self):
         """
@@ -244,11 +247,6 @@ class SemiRandomDijkstraSavingAllRoutes(SemiRandomDijkstra):
                 compute_multiplicity(to_node)
 
         return get_multiplicity
-
-
-
-
-
 
 
 def all_slotwise_combinations(collections_: List[List]):

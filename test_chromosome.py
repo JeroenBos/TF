@@ -98,10 +98,15 @@ class ChromosomeTests(unittest.TestCase):
     def test_find_random_routes_one_diversion(self):
         builder = ChromokerasBuilder((10,), (10,), [DenseBuilder()])
 
-        routes = set(islice(builder.find_random_routes(Node(0, (10,), 'x'), Node(2, (10,), None)), 100))
+        routes = set(islice(builder.find_random_routes(end=2), 100))
         self.assertEqual(len(routes), len(DenseBuilder.default_distributions['units'].collection))
+
+    def test_find_random_routes_impossible(self):
+        builder = ChromokerasBuilder((10, 10), (10,), [DenseBuilder()])
+
+        routes = list(islice(builder.find_random_routes(2), 100))
+        self.assertEqual(len(routes), 0)
 
 
 if __name__ == '__main__':
-    ChromosomeTests().test_genome_mutation()
     unittest.main()

@@ -129,7 +129,7 @@ class DenseBuilder(ChromokerasAlleleBuilder):
 
     # noinspection PyMethodOverriding
     def output_shape(self, input_shape, units):
-        return units,
+        return input_shape[:-1] + (units,)
 
     def __init__(self, **distributions):
         super().__init__(Dense, **distributions)
@@ -199,10 +199,16 @@ class ChromokerasBuilder(ChromosomeBuilder):
             result.append(new_layer)
             result.extend(self.generate_postfix_layers(new_layer, **kwargs))
 
-    def find_random_routes(self, start: Node, end: Node):
+    def find_random_routes(self, end: Union[Node, int]):
         """
         Returns random routes from start nodes to destination nodes, ad infinitum.
+        :param end: The node at which the random route ends, or the depth of the layer at which all routes end
         """
+        assert isinstance(end, (Node, int))
+        start = Node(0, self.batch_input_shape[1:], None)
+        if isinstance(end, int):
+            end = Node(end, self.batch_output_shape[1:], None)
+
         def get_all_layers_that_start_on(node: Node):
             if node.depth == end.depth:
                 return
