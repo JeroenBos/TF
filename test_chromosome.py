@@ -1,5 +1,6 @@
 import unittest
 import hyperchrom as c
+from chromokeras import *
 import keras
 from keras.activations import *
 from distribution import *
@@ -94,6 +95,11 @@ class ChromosomeTests(unittest.TestCase):
 
         self.assertIsNot(genome, mutated_genome)
 
+    def test_find_random_routes_one_diversion(self):
+        builder = ChromokerasBuilder((10,), (10,), [DenseBuilder()])
+
+        routes = set(islice(builder.find_random_routes(Node(0, (10,), 'x'), Node(2, (10,), None)), 100))
+        self.assertEqual(len(routes), len(DenseBuilder.default_distributions['units'].collection))
 
 
 if __name__ == '__main__':

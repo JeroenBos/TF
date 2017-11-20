@@ -40,7 +40,7 @@ class Distribution:
 
 class CollectionDistributionBase(Distribution):
     def __init__(self, collection, default):
-        assert default is not None
+        assert default in collection
         for element in collection:
             assert isinstance(element, collections.Hashable)
 
@@ -77,6 +77,10 @@ class CollectionDistributionBase(Distribution):
 
     def random(self):
         return random.choice(self._collection)
+
+    @property
+    def collection(self):
+        return self._collection  # TODO: return immutable wrapper
 
 
 class CollectionDistribution(CollectionDistributionBase):

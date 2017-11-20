@@ -127,6 +127,10 @@ class ParameterAllele(Allele):
         result.hash = ImmutableCacheParameterAllele.compute_hash(layer_type, **parameters)
         return result
 
+    def __repr__(self):
+        return f'{self.layer_type.__name__}({", ".join(str(key) + "=" + str(value) for key, value in self.parameters.items())})'
+
+
 
 ParameterAllele._all = ImmutableCacheParameterAllele(ParameterAllele)
 
@@ -263,6 +267,10 @@ class ParameterAlleleBuilder(AlleleBuilder):
             if name not in parameters:
                 parameters[name] = distribution.default
 
+        return ParameterAllele.create(self, self.layer_type, **parameters)
+
+    def create_random(self):
+        parameters = {name: distribution.random() for name, distribution in self.distributions.items()}
         return ParameterAllele.create(self, self.layer_type, **parameters)
 
     @staticmethod
