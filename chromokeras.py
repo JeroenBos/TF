@@ -102,17 +102,18 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
     def output_shape(input_shape):
         return input_shape
 
-    def contains_input_rank(self, value):
-        assert isinstance(self.input_rank, (int, list, tuple))
-        assert isinstance(self.input_rank, int) or all(isinstance(rank, int) for rank in self.input_rank)
-        assert isinstance(self.input_rank, (int, list)) or (len(self.input_rank) == 2 and self.input_rank[0] <= self.input_rank[1])
+    @classmethod
+    def contains_input_rank(cls, value):
+        assert isinstance(cls.input_rank, (int, list, tuple))
+        assert isinstance(cls.input_rank, int) or all(isinstance(rank, int) for rank in cls.input_rank)
+        assert isinstance(cls.input_rank, (int, list)) or (len(cls.input_rank) == 2 and cls.input_rank[0] <= cls.input_rank[1])
 
-        if isinstance(self.input_rank, int):
-            return self.input_rank == value
-        if isinstance(self.input_rank, list):
-            return value in self.input_rank
+        if isinstance(cls.input_rank, int):
+            return cls.input_rank == value
+        if isinstance(cls.input_rank, list):
+            return value in cls.input_rank
 
-        return self.input_rank[0] <= value <= self.input_rank[1]
+        return cls.input_rank[0] <= value <= cls.input_rank[1]
 
     def __init__(self, layer_type, **distributions):
         """
@@ -125,7 +126,7 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
 
 class DenseBuilder(ChromokerasAlleleBuilder):
     default_distributions = {'units': SetDistribution([10, 20, 50, 100, 200, 500, 1000], default=50)}
-    rank = 1
+    input_rank = 1
 
     # noinspection PyMethodOverriding
     @staticmethod
@@ -142,7 +143,7 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
                              'activation': SetDistribution([relu, sigmoid, tanh, linear,
                                                             leaky_relu(0.01), leaky_relu(0.1)], default=relu)
                              }
-    rank = 3
+    input_rank = 3
 
     # noinspection PyMethodOverriding
     @staticmethod
@@ -228,12 +229,13 @@ class ChromokerasBuilder(ChromosomeBuilder):
             if node.depth == end.depth:
                 return
             for builder in self.allele_builders:
-                relevant_parameters = builder.get_shape_influencing_parameter_names()
-                distributions = [builder.distributions[name].collection for name in relevant_parameters]
-                for parameter_combination in all_slotwise_combinations(distributions):
-                    output_shape = builder.output_shape(node.shape, **dict(zip(relevant_parameters, parameter_combination)))
-                    if output_shape is not None:
-                        yield Node(node.depth + 1, output_shape, builder.layer_type.__name__)
+                if builder.contains_input_rank(len(node.shape)):
+                    relevant_parameters = builder.get_shape_influencing_parameter_names()
+                    distributions = [builder.distributions[name].collection for name in relevant_parameters]
+                    for parameter_combination in all_slotwise_combinations(distributions):
+                        output_shape = builder.output_shape(node.shape, **dict(zip(relevant_parameters, parameter_combination)))
+                        if output_shape is not None:
+                            yield Node(node.depth + 1, output_shape, builder.layer_type.__name__)
 
         dijkstra = SemiRandomDijkstraSavingAllRoutes([start],
                                                      get_neighbors=get_all_layers_that_start_on,

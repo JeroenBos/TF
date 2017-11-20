@@ -108,6 +108,7 @@ class ChromosomeTests(unittest.TestCase):
         self.assertEqual(len(routes), 0)
 
     def test_find_random_routes_conv2D(self):
+        random.seed(999)
         builder = ChromokerasBuilder((10, 10), (10,), [DenseBuilder(), Conv2DBuilder()])
 
         routes = list(islice(builder.find_random_routes(2), 100))
@@ -124,6 +125,13 @@ class ChromosomeTests(unittest.TestCase):
         result = Conv2DBuilder.output_shape(filters=filters, kernel_size=kernel_size, input_shape=input_shape)
 
         self.assertEqual(expected, result)
+
+    def test_conv2D_contains_only_input_rank_3(self):
+        self.assertFalse(Conv2DBuilder.contains_input_rank(0))
+        self.assertFalse(Conv2DBuilder.contains_input_rank(1))
+        self.assertFalse(Conv2DBuilder.contains_input_rank(2))
+        self.assertTrue(Conv2DBuilder.contains_input_rank(3))
+        self.assertFalse(Conv2DBuilder.contains_input_rank(4))
 
 
 if __name__ == '__main__':
