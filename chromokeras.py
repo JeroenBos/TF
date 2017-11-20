@@ -92,14 +92,14 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
         assert not kwonlyargs
         assert not kwonlydefaults
 
-        assert len(args) >= 2
-        assert args[0] == 'self'
-        assert args[1] == 'input_shape'
+        assert len(args) >= 1
+        assert args[0] == 'input_shape'
 
-        del args[0:2]
+        del args[0:1]
         return args
 
-    def output_shape(self, input_shape):
+    @staticmethod
+    def output_shape(input_shape):
         return input_shape
 
     def contains_input_rank(self, value):
@@ -128,7 +128,8 @@ class DenseBuilder(ChromokerasAlleleBuilder):
     rank = 1
 
     # noinspection PyMethodOverriding
-    def output_shape(self, input_shape, units):
+    @staticmethod
+    def output_shape(input_shape, units):
         return input_shape[:-1] + (units,)
 
     def __init__(self, **distributions):
@@ -141,10 +142,11 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
                              'activation': SetDistribution([relu, sigmoid, tanh, linear,
                                                             leaky_relu(0.01), leaky_relu(0.1)], default=relu)
                              }
-    rank = 2
+    rank = 3
 
     # noinspection PyMethodOverriding
-    def output_shape(self, input_shape, filters, kernel_size):
+    @staticmethod
+    def output_shape(input_shape, filters, kernel_size):
         assert len(input_shape) == 3
         assert isinstance(filters, int)
         assert isinstance(kernel_size, int) or (isinstance(kernel_size, tuple) and len(kernel_size) == 2
@@ -162,7 +164,9 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
 class FlattenBuilder(ChromokerasAlleleBuilder):
     default_distributions = {}
     input_rank = (1, 10000)
-    def output_shape(self, input_shape):
+
+    @staticmethod
+    def output_shape(input_shape):
         return 1
 
     def __init__(self):

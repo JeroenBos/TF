@@ -121,7 +121,7 @@ class ChromosomeTests(unittest.TestCase):
 
         expected = model.output_shape[1:]
 
-        result = Conv2DBuilder().output_shape(filters=filters, kernel_size=kernel_size, input_shape=input_shape)
+        result = Conv2DBuilder.output_shape(filters=filters, kernel_size=kernel_size, input_shape=input_shape)
 
         self.assertEqual(expected, result)
 
