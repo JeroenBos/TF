@@ -145,7 +145,15 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
 
     # noinspection PyMethodOverriding
     def output_shape(self, input_shape, filters, kernel_size):
-        return 3
+        assert len(input_shape) == 3
+        assert isinstance(filters, int)
+        assert isinstance(kernel_size, int) or (isinstance(kernel_size, tuple) and len(kernel_size) == 2
+                                                and isinstance(kernel_size[0], int) and isinstance(kernel_size[1], int))
+
+        if isinstance(kernel_size, int):
+            kernel_size = (kernel_size, kernel_size)
+
+        return input_shape[0] - kernel_size[0] + 1, input_shape[1] - kernel_size[1] + 1, filters
 
     def __init__(self, **distributions):
         super().__init__(Conv2D, **distributions)

@@ -107,6 +107,24 @@ class ChromosomeTests(unittest.TestCase):
         routes = list(islice(builder.find_random_routes(2), 100))
         self.assertEqual(len(routes), 0)
 
+    def test_find_random_routes_conv2D(self):
+        builder = ChromokerasBuilder((10, 10), (10,), [DenseBuilder(), Conv2DBuilder()])
+
+        routes = list(islice(builder.find_random_routes(2), 100))
+        self.assertEqual(len(routes), 0)
+
+    def test_conv2D_output_shape(self):
+        filters = 11               # this test will work for
+        kernel_size = (3, 1)       # arbitrary positive numbers here
+        input_shape = (20, 13, 9)  # where kernel_size[i] < input_shape[i]     i = 1,2
+        model = keras.models.Sequential(layers=[Conv2D(filters=filters, kernel_size=kernel_size, input_shape=input_shape)])
+
+        expected = model.output_shape[1:]
+
+        result = Conv2DBuilder().output_shape(filters=filters, kernel_size=kernel_size, input_shape=input_shape)
+
+        self.assertEqual(expected, result)
+
 
 if __name__ == '__main__':
     unittest.main()
