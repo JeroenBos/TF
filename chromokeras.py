@@ -167,6 +167,9 @@ class FlattenBuilder(ChromokerasAlleleBuilder):
 
     @staticmethod
     def output_shape(input_shape):
+        """
+        If None is returned, it means the layer cannot be applied
+        """
         return 1
 
     def __init__(self):
@@ -229,8 +232,8 @@ class ChromokerasBuilder(ChromosomeBuilder):
                 distributions = [builder.distributions[name].collection for name in relevant_parameters]
                 for parameter_combination in all_slotwise_combinations(distributions):
                     output_shape = builder.output_shape(node.shape, **dict(zip(relevant_parameters, parameter_combination)))
-                    allele = builder.create(**dict(zip(relevant_parameters, parameter_combination)))
-                    yield Node(node.depth + 1, output_shape, allele)
+                    if output_shape is not None:
+                        yield Node(node.depth + 1, output_shape, builder.layer_type.__name__)
 
         dijkstra = SemiRandomDijkstraSavingAllRoutes([start],
                                                      get_neighbors=get_all_layers_that_start_on,
