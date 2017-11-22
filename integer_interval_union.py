@@ -1,0 +1,27 @@
+from typing import *
+
+
+class IntegerInterval:
+    empty = None
+    def __init__(self, interval: Union[int, List[int], Tuple[int, int]]):
+        assert isinstance(interval, (int, list, tuple))
+        assert isinstance(interval, int) or all(isinstance(val, int) for val in iter(interval))
+        assert isinstance(interval, (int, list)) or (len(interval) == 2 and interval[0] <= interval[1])
+
+        self.__interval = interval
+
+    def __contains__(self, item):
+
+        if isinstance(self.interval, int):
+            return self.interval == item
+        if isinstance(self.interval, list):
+            return item in self.interval
+
+        return self.interval[0] <= item <= self.interval[1]
+
+    @property
+    def interval(self):
+        return self.__interval
+
+
+IntegerInterval.empty = IntegerInterval([])

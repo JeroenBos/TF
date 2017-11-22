@@ -8,7 +8,7 @@ from random_dijkstra import SemiRandomDijkstraSavingAllRoutes, all_slotwise_comb
 import operator
 import inspect
 from functools import reduce
-
+from integer_interval_union import IntegerInterval
 
 class Node:
     def __init__(self, depth, shape, builder):
@@ -73,7 +73,7 @@ def chromosome_to_nn(chromosome: Chromosome):
 class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
     default_distributions: dict = NotImplementedError("subclass must implement 'get_default_distributions'")
     # input_rank is a number, a list of numbers or a tuple of numbers signifying an inclusive range
-    input_rank = []
+    input_rank: IntegerInterval = IntegerInterval.empty
     # indicates whether this is an actual layer with nodes, as opposed to the implementation detail type of layer
     # used by keras layer that isn't really a layer, e.g. Reshape and Flatten
     is_real_layer = True
@@ -107,16 +107,8 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
 
     @classmethod
     def contains_input_rank(cls, value):
-        assert isinstance(cls.input_rank, (int, list, tuple))
-        assert isinstance(cls.input_rank, int) or all(isinstance(rank, int) for rank in cls.input_rank)
-        assert isinstance(cls.input_rank, (int, list)) or (len(cls.input_rank) == 2 and cls.input_rank[0] <= cls.input_rank[1])
-
-        if isinstance(cls.input_rank, int):
-            return cls.input_rank == value
-        if isinstance(cls.input_rank, list):
-            return value in cls.input_rank
-
-        return cls.input_rank[0] <= value <= cls.input_rank[1]
+        assert isinstance(cls.input_rank, IntegerInterval)
+        return value in cls.input_rank
 
     def __init__(self, layer_type, **distributions):
         """
@@ -129,7 +121,7 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
 
 class DenseBuilder(ChromokerasAlleleBuilder):
     default_distributions = {'units': SetDistribution([10, 20, 50, 100, 200, 500, 1000], default=50)}
-    input_rank = 1
+    input_rank = IntegerInterval(1)
 
     # noinspection PyMethodOverriding
     @staticmethod
@@ -146,7 +138,7 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
                              'activation': SetDistribution([relu, sigmoid, tanh, linear,
                                                             leaky_relu(0.01), leaky_relu(0.1)], default=relu)
                              }
-    input_rank = 3
+    input_rank = IntegerInterval(3)
 
     # noinspection PyMethodOverriding
     @staticmethod
@@ -173,7 +165,7 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
 
 class FlattenBuilder(ChromokerasAlleleBuilder):
     default_distributions = {}
-    input_rank = (1, 10000)
+    input_rank = IntegerInterval((1, 10000))
     is_real_layer = False
 
     @staticmethod
