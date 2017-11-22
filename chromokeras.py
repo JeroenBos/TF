@@ -248,7 +248,7 @@ class ChromokerasBuilder(ChromosomeBuilder):
             for builder in applicable_builders:
                 if builder.contains_input_rank(len(node.shape)):
                     relevant_parameters = builder.get_shape_influencing_parameter_names()
-                    distributions = [builder.distributions[name].collection for name in relevant_parameters]
+                    distributions = [builder.distributions[name].get_collection(node.shape) for name in relevant_parameters]
                     for parameter_combination in all_slotwise_combinations(distributions):
                         output_shape = builder.output_shape(node.shape, **dict(zip(relevant_parameters, parameter_combination)))
                         if output_shape is not None:

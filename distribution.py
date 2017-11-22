@@ -76,8 +76,9 @@ class CollectionDistributionBase(Distribution):
     def random(self):
         return random.choice(self._collection)
 
-    @property
-    def collection(self):
+    def get_collection(self, _input_shape=None):
+        # if I eventually implement a collection that could not possibly return a collection, I have a problem
+        # in the algorithm calling this method (get_all_layers_that_start_on)
         return self._collection  # TODO: return immutable wrapper
 
 

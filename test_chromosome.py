@@ -99,7 +99,7 @@ class ChromosomeTests(unittest.TestCase):
         builder = ChromokerasBuilder((10,), (10,), [DenseBuilder()])
 
         routes = set(islice(builder.find_random_routes(end=2), 100))
-        self.assertEqual(len(routes), len(DenseBuilder.default_distributions['units'].collection))
+        self.assertEqual(len(routes), len(DenseBuilder.default_distributions['units'].get_collection()))
 
     def test_find_random_routes_impossible(self):
         builder = ChromokerasBuilder((10, 10), (10,), [DenseBuilder()])
