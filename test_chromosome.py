@@ -107,12 +107,12 @@ class ChromosomeTests(unittest.TestCase):
         routes = list(islice(builder.find_random_routes(2), 100))
         self.assertEqual(len(routes), 0)
 
-    def test_find_random_routes_conv2D(self):
+    def test_find_random_routes_impossible_conv2D(self):
         random.seed(999)
-        builder = ChromokerasBuilder((10, 10), (10,), [DenseBuilder(), Conv2DBuilder()])
+        builder = ChromokerasBuilder((10, 10, 1), (10,), [DenseBuilder(), Conv2DBuilder()])
 
         routes = list(islice(builder.find_random_routes(2), 100))
-        self.assertEqual(len(routes), 0)
+        self.assertEqual(len(routes), 0)  # doesn't work because flatten isn't included
 
     def test_conv2D_output_shape(self):
         filters = 11               # this test will work for

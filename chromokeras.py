@@ -5,8 +5,9 @@ from keras.activations import *
 from itertools import *
 from distribution import *
 from random_dijkstra import SemiRandomDijkstraSavingAllRoutes, all_slotwise_combinations
-import collections
+import operator
 import inspect
+from functools import reduce
 
 
 class Node:
@@ -171,7 +172,7 @@ class FlattenBuilder(ChromokerasAlleleBuilder):
         """
         If None is returned, it means the layer cannot be applied
         """
-        return 1
+        return reduce(operator.mul, input_shape)
 
     def __init__(self):
         super().__init__(Flatten)

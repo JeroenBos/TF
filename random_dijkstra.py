@@ -3,10 +3,8 @@ import heapq
 import random
 import sys
 import collections
-import itertools
 
 T = TypeVar('T')
-multiplicityNode = collections.namedtuple('multicityNode', ['value', 'multiplicity'])
 
 
 class RandomWalk:
@@ -120,15 +118,13 @@ class SemiRandomDijkstra(RandomWalk):
 
         def __lt__(self, other):
             assert isinstance(other, __class__)
-            return self.__new_comparable < other.__new_comparable \
-                   or (self.__new_comparable == other.__new_comparable
-                       and self.__randomization < other.__randomization)
+            return self.__new_comparable < other.__new_comparable or (self.__new_comparable == other.__new_comparable
+                                                                      and self.__randomization < other.__randomization)
 
         def __gt__(self, other):
             assert isinstance(other, __class__)
-            return self.__new_comparable > other.__new_comparable \
-                   or (self.__new_comparable == other.__new_comparable
-                       and self.__randomization > other.__randomization)
+            return self.__new_comparable > other.__new_comparable or (self.__new_comparable == other.__new_comparable
+                                                                      and self.__randomization > other.__randomization)
 
         def __getitem__(self, item):
             if item == 0:
@@ -250,11 +246,13 @@ class SemiRandomDijkstraSavingAllRoutes(SemiRandomDijkstra):
 
 
 def all_slotwise_combinations(collections_: List[List]):
+    if len(collections_) == 0:
+        return [[]]
     indices = [0 for _ in collections_]
 
     while True:
         yield tuple(collection[i] for i, collection in zip(indices, collections_))
-        for i in range(len(collections_) + 1):
+        for i in range(len(collections_)):
             if indices[i] + 1 == len(collections_[i]):
                 if i + 1 == len(collections_):
                     return

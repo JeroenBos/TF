@@ -198,7 +198,7 @@ class AlleleBuilder:
 
 class ParameterAlleleBuilder(AlleleBuilder):
     def __init__(self, layer_type, **distributions):
-        assert len(distributions) > 0
+        assert len(distributions) >= 0
         assert all(isinstance(distribution, Distribution) for distribution in distributions.values())
         assert_is_callable_with(layer_type, distributions.keys())
 
