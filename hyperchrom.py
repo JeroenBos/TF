@@ -131,7 +131,6 @@ class ParameterAllele(Allele):
         return f'{self.layer_type.__name__}({", ".join(str(key) + "=" + str(value) for key, value in self.parameters.items())})'
 
 
-
 ParameterAllele._all = ImmutableCacheParameterAllele(ParameterAllele)
 
 

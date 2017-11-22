@@ -100,6 +100,9 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
 
     @staticmethod
     def output_shape(input_shape):
+        """
+        If None is returned, it means the layer cannot be applied
+        """
         return input_shape
 
     @classmethod
@@ -119,7 +122,7 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
         """
         :param parameters: Overrides the default parameters
         """
-        distributions = self.default_distributions if len(distributions) != 0 else dict(self.default_distributions,
+        distributions = self.default_distributions if len(distributions) == 0 else dict(self.default_distributions,
                                                                                         **distributions)
         super().__init__(layer_type, **distributions)
 
@@ -148,6 +151,9 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
     # noinspection PyMethodOverriding
     @staticmethod
     def output_shape(input_shape, filters, kernel_size):
+        """
+        If None is returned, it means the layer cannot be applied
+        """
         assert len(input_shape) == 3
         assert isinstance(filters, int)
         assert isinstance(kernel_size, int) or (isinstance(kernel_size, tuple) and len(kernel_size) == 2
@@ -155,6 +161,9 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
 
         if isinstance(kernel_size, int):
             kernel_size = (kernel_size, kernel_size)
+
+        if input_shape[0] < kernel_size[0] or input_shape[0] < kernel_size[1]:
+            return None  # output shape would contain dimension with size 0, which is not possible
 
         return input_shape[0] - kernel_size[0] + 1, input_shape[1] - kernel_size[1] + 1, filters
 
@@ -229,9 +238,14 @@ class ChromokerasBuilder(ChromosomeBuilder):
             end = Node(end, self.batch_output_shape[1:], None)
 
         def get_all_layers_that_start_on(node: Node):
-            if node.depth == end.depth:
+            if node.depth > end.depth:
                 return
-            for builder in self.allele_builders:
+            elif node.depth == end.depth:
+                applicable_builders = filter(lambda b: not b.is_real_layer, self.allele_builders)
+            else:
+                applicable_builders = self.allele_builders
+
+            for builder in applicable_builders:
                 if builder.contains_input_rank(len(node.shape)):
                     relevant_parameters = builder.get_shape_influencing_parameter_names()
                     distributions = [builder.distributions[name].collection for name in relevant_parameters]
