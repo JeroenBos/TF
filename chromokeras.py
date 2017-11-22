@@ -34,11 +34,7 @@ class Node:
         return self.depth == other.depth and self.shape == other.shape
 
     def __repr__(self):
-        try:
-            builder_str = ", " + str(self.builder.layer_type.__name__)
-        except:
-            builder_str = ""
-        return f'node(depth={self.depth}, shape={self.shape}{builder_str})'
+        return f'node(depth={self.depth}, shape={self.shape}, {self.builder})'
 
 
 _cached_nns = {}
@@ -172,7 +168,9 @@ class FlattenBuilder(ChromokerasAlleleBuilder):
         """
         If None is returned, it means the layer cannot be applied
         """
-        return reduce(operator.mul, input_shape)
+        if len(input_shape) == 1:
+            return None  # input is already flat
+        return reduce(operator.mul, input_shape),
 
     def __init__(self):
         super().__init__(Flatten)
@@ -236,6 +234,7 @@ class ChromokerasBuilder(ChromosomeBuilder):
                     for parameter_combination in all_slotwise_combinations(distributions):
                         output_shape = builder.output_shape(node.shape, **dict(zip(relevant_parameters, parameter_combination)))
                         if output_shape is not None:
+                            assert isinstance(output_shape, tuple)
                             yield Node(node.depth + 1, output_shape, builder.layer_type.__name__)
 
         dijkstra = SemiRandomDijkstraSavingAllRoutes([start],

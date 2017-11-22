@@ -247,7 +247,9 @@ class SemiRandomDijkstraSavingAllRoutes(SemiRandomDijkstra):
 
 def all_slotwise_combinations(collections_: List[List]):
     if len(collections_) == 0:
-        return [[]]
+        yield []
+        return
+
     indices = [0 for _ in collections_]
 
     while True:
