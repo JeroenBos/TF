@@ -74,6 +74,9 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
     default_distributions: dict = NotImplementedError("subclass must implement 'get_default_distributions'")
     # input_rank is a number, a list of numbers or a tuple of numbers signifying an inclusive range
     input_rank = []
+    # indicates whether this is an actual layer with nodes, as opposed to the implementation detail type of layer
+    # used by keras layer that isn't really a layer, e.g. Reshape and Flatten
+    is_real_layer = True
 
     def get_shape_influencing_parameter_names(self):
         """
@@ -162,6 +165,7 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
 class FlattenBuilder(ChromokerasAlleleBuilder):
     default_distributions = {}
     input_rank = (1, 10000)
+    is_real_layer = False
 
     @staticmethod
     def output_shape(input_shape):
@@ -235,7 +239,7 @@ class ChromokerasBuilder(ChromosomeBuilder):
                         output_shape = builder.output_shape(node.shape, **dict(zip(relevant_parameters, parameter_combination)))
                         if output_shape is not None:
                             assert isinstance(output_shape, tuple)
-                            yield Node(node.depth + 1, output_shape, builder.layer_type.__name__)
+                            yield Node(node.depth + builder.is_real_layer, output_shape, builder.layer_type.__name__)
 
         dijkstra = SemiRandomDijkstraSavingAllRoutes([start],
                                                      get_neighbors=get_all_layers_that_start_on,
