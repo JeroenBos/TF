@@ -205,7 +205,7 @@ class ParameterAlleleBuilder(AlleleBuilder):
         self.layer_type = layer_type
         self.distributions = distributions
 
-        cumulative_mutation_weight = product(distribution.size for distribution in self.distributions.values())
+        cumulative_mutation_weight = product(len(distribution) for distribution in self.distributions.values())
         # the current allele does not count, even though you technically won't mutate to it
         cumulative_mutation_weight -= 1
         super().__init__(cumulative_mutation_weight)
@@ -214,7 +214,7 @@ class ParameterAlleleBuilder(AlleleBuilder):
         def get_weight(param_value_pair):
             parameter, value = param_value_pair
             distribution = self.distributions[parameter]
-            return distribution.size
+            return len(distribution)
 
         def mutate(param_value_pair):
             parameter, value = param_value_pair

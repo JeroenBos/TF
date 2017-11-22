@@ -120,6 +120,13 @@ class ChromosomeTests(unittest.TestCase):
         routes = list(set(islice(builder.find_random_routes(1), 100)))
         self.assertEqual(len(routes), 1)  # there is only one route, namely flatten immediately and then a Dense(100)
 
+    def test_find_only_flatten_dense_dense_possibility(self):
+        builder = ChromokerasBuilder((10, 10, 1), (100,), [DenseBuilder(), FlattenBuilder()])
+
+        routes = list(set(islice(builder.find_random_routes(2), 100)))
+        # there is only one type of route, namely flatten immediately and then a Dense(X) and then Dense(100)
+        self.assertEqual(len(routes), len(DenseBuilder.default_distributions['units']))
+
     def test_conv2D_output_shape(self):
         filters = 11               # this test will work for
         kernel_size = (3, 1)       # arbitrary positive numbers here
@@ -141,4 +148,5 @@ class ChromosomeTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
+    ChromosomeTests().test_find_only_flatten_dense_dense_possibility()
     unittest.main()

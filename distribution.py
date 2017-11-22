@@ -23,9 +23,8 @@ class Distribution:
         """ Returns a value in the current distribution nearby (but not equal to) the specified element. """
         raise NotImplementedError("subclass does not implement 'mutate'")
 
-    @property
-    def size(self):
-        raise NotImplementedError("subclass does not implement 'size'")
+    def __len__(self):
+        raise NotImplementedError("subclass does not implement '__len__'")
 
     def __contains__(self, item):
         raise NotImplementedError("subclass does not implement '__contains__'")
@@ -51,8 +50,7 @@ class CollectionDistributionBase(Distribution):
     def default(self):
         return self.__default
 
-    @property
-    def size(self):
+    def __len__(self):
         return len(self._collection)
 
     def __contains__(self, item):
@@ -66,11 +64,11 @@ class CollectionDistributionBase(Distribution):
 
     def mutate(self, a):
         assert a in self
-        assert self.size != 1
+        assert len(self) != 1
 
         collection_without_a = filterfalse(lambda e: e is not a, self._collection)
         multiplicity_a = sum(1 for _ in collection_without_a)
-        return nth(collection_without_a, random.randint(0, self.size - 1 - multiplicity_a))
+        return nth(collection_without_a, random.randint(0, len(self) - 1 - multiplicity_a))
 
     def between(self, a, b):
         super().between(a, b)
