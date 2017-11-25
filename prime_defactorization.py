@@ -177,7 +177,7 @@ def _to_multiplicities(primes):
     return uniques, counts
 
 
-def defactorize(n: Union[int, Iterable[int]], combination_length: Union[int, Iterable[int]]):
+def defactorize(n: Union[int, Iterable[int]], combination_length: int):
     """
     :n: The number or numbers to divide into primes.
     :combination_length: The length of the combinations to yield
@@ -186,8 +186,6 @@ def defactorize(n: Union[int, Iterable[int]], combination_length: Union[int, Ite
 
     if isinstance(n, int):
         n = [n]
-    if isinstance(combination_length, int):
-        combination_length = [combination_length]
 
     primes = flatten(prime_factors(n_, brent) for n_ in n)
     primes, multiplicities = _to_multiplicities(primes)
@@ -209,10 +207,9 @@ def defactorize(n: Union[int, Iterable[int]], combination_length: Union[int, Ite
     def to_number(selection):
         return reduce(operator.mul, (primes[i] ** multiplicity for i, multiplicity in enumerate(selection)))
 
-    for destination_rank in combination_length:
-        for combination in combine(explicit_multiplicities, destination_rank - 1):
-            result = [to_number(powers) for powers in combination]
-            yield result
+    for combination in combine(explicit_multiplicities, combination_length - 1):
+        result = [to_number(powers) for powers in combination]
+        yield result
 
 
 class Tests(unittest.TestCase):
