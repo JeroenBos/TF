@@ -196,18 +196,25 @@ class AlleleBuilder:
 
 
 class ParameterAlleleBuilder(AlleleBuilder):
-    def __init__(self, layer_type, **distributions):
-        assert len(distributions) >= 0
-        assert all(isinstance(distribution, Distribution) for distribution in distributions.values())
-        assert_is_callable_with(layer_type, distributions.keys())
+    default_distributions = {}
+
+    def __init__(self, layer_type, **overriding_distributions):
+        assert len(overriding_distributions) >= 0
+        assert all(isinstance(distribution, Distribution) for distribution in overriding_distributions.values())
+        assert_is_callable_with(layer_type, overriding_distributions.keys())
 
         self.layer_type = layer_type
-        self.distributions = distributions
+        self.overriding_distributions = overriding_distributions
 
         cumulative_mutation_weight = product(len(distribution) for distribution in self.distributions.values())
         # the current allele does not count, even though you technically won't mutate to it
         cumulative_mutation_weight -= 1
         super().__init__(cumulative_mutation_weight)
+
+    @property
+    def distributions(self):  # TODO: I could make this a dictionary which is the lazy concatenation of two dictionaries
+        return self.default_distributions if len(self.overriding_distributions) == 0\
+            else dict(self.default_distributions, **self.overriding_distributions)
 
     def mutate(self, allele):
         def get_weight(param_value_pair):

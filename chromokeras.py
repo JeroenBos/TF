@@ -110,13 +110,11 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
         assert isinstance(cls.input_rank, IntegerInterval)
         return value in cls.input_rank
 
-    def __init__(self, layer_type, **distributions):
+    def __init__(self, layer_type, **overriding_distributions):
         """
         :param parameters: Overrides the default parameters
         """
-        distributions = self.default_distributions if len(distributions) == 0 else dict(self.default_distributions,
-                                                                                        **distributions)
-        super().__init__(layer_type, **distributions)
+        super().__init__(layer_type, **overriding_distributions)
 
 
 class DenseBuilder(ChromokerasAlleleBuilder):
