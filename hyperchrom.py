@@ -186,14 +186,17 @@ Genome._all = ImmutableCacheList(Genome)
 
 
 class AlleleBuilder:
-    def __init__(self, cumulative_mutation_weight):
+    def __init__(self, cumulative_mutation_weight=None):
         """
         :param cumulative_mutation_weight: The number mutations an allele built by this builder can undergo.
         """
-        self.cumulative_mutation_weight = cumulative_mutation_weight
+        self.__cumulative_mutation_weight = cumulative_mutation_weight
 
     def mutate(self, allele):
         raise NotImplementedError("subclass must implement 'mutate'")
+
+    def get_cumulative_mutation_weight(self, _allele):
+        return self.__cumulative_mutation_weight
 
 
 class ParameterAlleleBuilder(AlleleBuilder):
@@ -233,7 +236,7 @@ class ParameterAlleleBuilder(AlleleBuilder):
         new_parameters = dict(weighted_change(allele.parameters.items(),
                                               get_weight,
                                               mutate,
-                                              self.cumulative_mutation_weight))
+                                              self.get_cumulative_mutation_weight(allele)))
 
         return ParameterAllele.create(self, allele.layer_type, **new_parameters)
 
@@ -298,7 +301,7 @@ class ChromosomeBuilder:
     def mutate_small(self, chromosome: Chromosome):
         return Chromosome.create(_mutate(self.allele_builders,
                                          chromosome.alleles,
-                                         lambda builder, allele: builder.cumulative_mutation_weight,
+                                         lambda builder, allele: builder.get_cumulative_mutation_weight(allele),
                                          lambda builder, allele: builder.mutate(allele)))
 
     def generate(self):
@@ -317,7 +320,7 @@ class ChromosomeBuilder:
 
     # noinspection PyMethodMayBeStatic
     def get_small_mutation_weight(self, chromosome):
-        return sum(allele.builder.cumulative_mutation_weight for allele in chromosome.alleles)
+        return sum(allele.builder.get_cumulative_mutation_weight(allele) for allele in chromosome.alleles)
 
     @staticmethod
     def crossover(a, b):

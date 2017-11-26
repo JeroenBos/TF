@@ -61,9 +61,9 @@ class ChromosomeTests(unittest.TestCase):
 
     def test_allele_mutation_possibility_count(self):
         distribution = CollectionDistribution([10, 20, 50, 100])
-        allele = c.ParameterAlleleBuilder(keras.layers.Dense, units=distribution, something_else=distribution)
+        builder = c.ParameterAlleleBuilder(keras.layers.Dense, units=distribution, something_else=distribution)
 
-        self.assertEqual(4 * 4 - 1, allele.cumulative_mutation_weight)
+        self.assertEqual(4 * 4 - 1, builder.get_cumulative_mutation_weight(None))
 
     def test_chromosome_mutation_possibility_count(self):
         distribution = CollectionDistribution([10, 20, 50, 100])
@@ -155,5 +155,4 @@ class ChromosomeTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    ChromosomeTests().test_find_only_conv2d_dense_possibility()
     unittest.main()
