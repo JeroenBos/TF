@@ -107,7 +107,7 @@ class ParameterAllele(Allele):
         :param layer_type: The callable creating the layer.
         :param parameters: Pairs of names of parameters to layer_type.__call__. None is allowed as value.
         """
-        assert len(parameters) > 0
+        assert len(parameters) >= 0
         assert all(not isinstance(parameter, Distribution) for parameter in parameters.values())
         assert all(
             not isinstance(p, tuple) or all(not isinstance(t, Distribution) for t in p) for p in parameters.values())
