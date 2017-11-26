@@ -186,17 +186,22 @@ Genome._all = ImmutableCacheList(Genome)
 
 
 class AlleleBuilder:
-    def __init__(self, cumulative_mutation_weight=None):
-        """
-        :param cumulative_mutation_weight: The number mutations an allele built by this builder can undergo.
-        """
-        self.__cumulative_mutation_weight = cumulative_mutation_weight
-
     def mutate(self, allele):
         raise NotImplementedError("subclass must implement 'mutate'")
 
-    def get_cumulative_mutation_weight(self, _allele):
-        return self.__cumulative_mutation_weight
+    # noinspection PyUnresolvedReferences,PyAttributeOutsideInit
+    def get_cumulative_mutation_weight(self, allele):
+        """:param allele: Some representative allele."""
+        # merely the default implementation
+        try:
+            return self.__cumulative_mutation_weight
+        except AttributeError:
+            cumulative_mutation_weight = product(distribution.get_weight(allele) for distribution in self.distributions.values())
+            # the current allele does not count, even though you technically won't mutate to it
+            cumulative_mutation_weight -= 1
+
+            self.__cumulative_mutation_weight = cumulative_mutation_weight
+            return self.__cumulative_mutation_weight
 
 
 class ParameterAlleleBuilder(AlleleBuilder):
@@ -210,10 +215,7 @@ class ParameterAlleleBuilder(AlleleBuilder):
         self.layer_type = layer_type
         self.overriding_distributions = overriding_distributions
 
-        cumulative_mutation_weight = product(len(distribution) for distribution in self.distributions.values())
-        # the current allele does not count, even though you technically won't mutate to it
-        cumulative_mutation_weight -= 1
-        super().__init__(cumulative_mutation_weight)
+        super().__init__()
 
     @property
     def distributions(self):  # TODO: I could make this a dictionary which is the lazy concatenation of two dictionaries
@@ -224,7 +226,7 @@ class ParameterAlleleBuilder(AlleleBuilder):
         def get_weight(param_value_pair):
             parameter, value = param_value_pair
             distribution = self.distributions[parameter]
-            return len(distribution)
+            return distribution.get_weight(value)
 
         def mutate(param_value_pair):
             parameter, value = param_value_pair
@@ -276,6 +278,8 @@ class ParameterAlleleBuilder(AlleleBuilder):
         for name, distribution in self.distributions.items():
             if name not in parameters:
                 parameters[name] = distribution.default
+            else:
+                assert parameters[name] in distribution, f'{parameters[name]} is not in {distribution}'
 
         return ParameterAllele.create(self, self.layer_type, **parameters)
 

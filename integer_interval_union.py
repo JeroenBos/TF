@@ -34,5 +34,13 @@ class IntegerInterval:
 
         return range(self.interval[0], self.interval[1] + 1)
 
+    def __repr__(self):
+        if isinstance(self.interval, int):
+            return f'[{self.interval}]'
+        if isinstance(self.interval, list):
+            return repr(self.interval)
+
+        return f'[{self.interval[0]}...{self.interval[1]}]'
+
 
 IntegerInterval.empty = IntegerInterval([])

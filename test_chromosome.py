@@ -153,6 +153,21 @@ class ChromosomeTests(unittest.TestCase):
         self.assertTrue(Conv2DBuilder.contains_input_rank(3))
         self.assertFalse(Conv2DBuilder.contains_input_rank(4))
 
+    def test_create_simple_reshape(self):
+        builder = ReshapeBuilder(ranks=[1, 2], final_shapes=((10,), (10,)))
+        layer = builder.create(target_shape=(2, 5))
+
+        self.assertIsNotNone(layer)
+
+    def test_simple_reshape(self):
+        builder = ReshapeBuilder(ranks=[1], final_shapes=((10,), (10,)))
+        layer = builder.create(target_shape=(2, ))
+
+        layer = builder.mutate(layer)
+
+        self.assertIsNotNone(layer)
+
 
 if __name__ == '__main__':
+    ChromosomeTests().test_simple_reshape()
     unittest.main()

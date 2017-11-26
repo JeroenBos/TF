@@ -9,6 +9,7 @@ import operator
 import inspect
 from functools import reduce
 from integer_interval_union import IntegerInterval
+from chromokeras_distributions import ReshapeDistributionFamily
 
 class Node:
     def __init__(self, depth, shape, builder):
@@ -78,6 +79,12 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
     # used by keras layer that isn't really a layer, e.g. Reshape and Flatten
     is_real_layer = True
 
+    def init_final_shapes(self, final_input_shape, final_output_shape):
+        """
+        This builder is initialized before first usage with the final input and output shapes.
+        """
+        pass
+
     def get_shape_influencing_parameter_names(self):
         """
         Gets the parameters on the ParameterAlleles that influence the output shape.
@@ -112,7 +119,7 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
 
     def __init__(self, layer_type, **overriding_distributions):
         """
-        :param parameters: Overrides the default parameters
+        :param overriding_distributions: Overrides the default parameters
         """
         super().__init__(layer_type, **overriding_distributions)
 
@@ -179,6 +186,42 @@ class FlattenBuilder(ChromokerasAlleleBuilder):
         super().__init__(Flatten)
 
 
+class ReshapeBuilder(ChromokerasAlleleBuilder):
+    default_distributions = {}
+    input_rank = IntegerInterval((1, 10000))
+    is_real_layer = False
+
+    # noinspection PyMethodOverriding
+    @staticmethod
+    def output_shape(input_shape, target_shape):
+        """
+        If None is returned, it means the layer cannot be applied
+        """
+        if reduce(operator.mul, input_shape) != reduce(operator.mul, target_shape):
+            return None  # input is not commensurate with target
+        return target_shape
+
+    def init_final_shapes(self, final_input_shape, final_output_shape):
+        assert self.family is None, f'This {__name__} has already been initialized'
+
+        self.family = ReshapeDistributionFamily(self.ranks, final_input_shape, final_output_shape, self.rank_derivative_sign)
+        self.distributions['target_shape'] = self.family
+
+    def __init__(self, ranks: Union[IntegerInterval, int, list, tuple], final_shapes=None, rank_derivative_sign=None):
+        super().__init__(Reshape)
+        self.family = None
+        self.ranks = ranks if isinstance(ranks, IntegerInterval) else IntegerInterval(ranks)
+        self.rank_derivative_sign = rank_derivative_sign
+        if final_shapes:
+            self.init_final_shapes(*final_shapes)
+
+    def create(self, target_shape, **parameters):
+        return super().create(target_shape=target_shape, **parameters)
+
+    def get_cumulative_mutation_weight(self, allele: ParameterAllele):
+        return self.family.get_weight(allele.parameters['target_shape'])
+
+
 class ChromokerasBuilder(ChromosomeBuilder):
     def __init__(self, input_shape, output_shape, allele_builders: Iterable[ChromokerasAlleleBuilder]):
         super().__init__(allele_builders)
@@ -188,6 +231,9 @@ class ChromokerasBuilder(ChromosomeBuilder):
         assert isinstance(output_shape, tuple)
         assert len(output_shape) > 0
         assert all(output_shape), 'The output_shape dimensions cannot be None'
+
+        for builder in allele_builders:
+            builder.init_final_shapes(input_shape, output_shape)
 
         self.batch_input_shape = (None,) + input_shape
         self.batch_output_shape = (None,) + output_shape
@@ -199,17 +245,12 @@ class ChromokerasBuilder(ChromosomeBuilder):
         assert isinstance(layer_count, int) and layer_count >= 2, 'There must be at least 2 layers'
         del kwargs['layer_count']
 
-        # if 'rank_derivative_sign' in kwargs:
-        #     assert kwargs['rank_derivative_sign'] in [-1, 0, 1, None]
-        #     if kwargs['rank_derivative_sign']:
-        #         op = [operator.lt, operator.eq, operator.gt][kwargs['rank_derivative_sign'] + 1]
-        #         assert op(len(self.batch_output_shape), len(self.batch_input_shape))
-
         result = []
         while len(result) != layer_count:
             input_rank = self.get_rank(result[-1]) if len(result) != 0 else len(self.batch_input_shape) - 1
 
-            potential_builders = [builder for builder in self.allele_builders if builder.contains_input_rank(input_rank)]
+            potential_builders = [builder for builder in self.allele_builders if
+                                  builder.contains_input_rank(input_rank)]
             builder = random.choice(potential_builders)
             new_layer = builder.create_random()
 
@@ -238,9 +279,11 @@ class ChromokerasBuilder(ChromosomeBuilder):
             for builder in applicable_builders:
                 if builder.contains_input_rank(len(node.shape)):
                     relevant_parameters = builder.get_shape_influencing_parameter_names()
-                    distributions = [builder.distributions[name].get_collection(node.shape) for name in relevant_parameters]
+                    distributions = [builder.distributions[name].get_collection(node.shape) for name in   # TODO: I can probably remove the parameter node.shape again....
+                                     relevant_parameters]
                     for parameter_combination in all_slotwise_combinations(distributions):
-                        output_shape = builder.output_shape(node.shape, **dict(zip(relevant_parameters, parameter_combination)))
+                        output_shape = builder.output_shape(node.shape,
+                                                            **dict(zip(relevant_parameters, parameter_combination)))
                         if output_shape is not None:
                             assert isinstance(output_shape, tuple)
                             yield Node(node.depth + builder.is_real_layer, output_shape, builder.layer_type.__name__)
@@ -248,7 +291,7 @@ class ChromokerasBuilder(ChromosomeBuilder):
         dijkstra = SemiRandomDijkstraSavingAllRoutes([start],
                                                      get_neighbors=get_all_layers_that_start_on,
                                                      f_is_dest=lambda node: node.depth == end.depth
-                                                                        and node.shape == end.shape,
+                                                                            and node.shape == end.shape,
                                                      get_comparable=lambda node: -node.depth)
         return dijkstra.find_random_routes()
 
@@ -267,20 +310,12 @@ class ChromokerasBuilder(ChromosomeBuilder):
         if input_rank < final_output_rank:
             pass
 
-
-
-
-
-
-
-
     @staticmethod
     def get_rank(layer):
         raise NotImplementedError()
 
     def create_flatten_layer(self):
         return
-
 
     def generate_postfix_layers(self, _layer_before, _rank_derivative_sign=None):
         """
