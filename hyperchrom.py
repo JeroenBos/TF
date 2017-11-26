@@ -249,7 +249,7 @@ class ParameterAlleleBuilder(AlleleBuilder):
         Draws a random element from this distribution.
         """
         parameters = {name: distribution.random() for name, distribution in self.distributions.items()}
-        return ParameterAllele.create(self.layer_type, **parameters)
+        return ParameterAllele.create(self, self.layer_type, **parameters)
 
     def default(self):
         """
