@@ -27,10 +27,11 @@ def assert_is_callable_with(f, parameter_names):
 
 def _mutate(builders, elements, get_weight, perform_mutation, cumulative_weight=None):
     """
+    Creates a new collection of elements where one of them is mutated
     :param builders: The builders of the elements to perform the mutation on
     :param builders: The elements to perform the mutation on
     :param get_weight: A function taking a builder and element returning the relative weight that is should be mutated
-    :param perform_mutation: The function taking a builder and element  returning the mutated form
+    :param perform_mutation: The function taking a builder and element returning the mutated form
     :return: The list of new elements
     """
 
