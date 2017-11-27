@@ -96,8 +96,5 @@ class ReshapeDistribution(CollectionDistribution):
     def __eq__(self, other):
         return isinstance(other, ReshapeDistribution) and self.ranks == other.ranks
 
-    def __contains__(self, item):
-        return isinstance(item, tuple) and len(item) in self.ranks
-
     def __repr__(self):
         return f'ReshapeDistribution(size={self.input_size}, ranks={self.ranks})'
