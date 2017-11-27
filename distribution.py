@@ -33,6 +33,15 @@ def are_shapes_compatible_with_rank_derivative(rank_derivative_sign, final_input
     return op(len(final_output_shape), len(final_input_shape))
 
 
+def nth_or_throw(iterable, n):
+    i = 0
+    for e in iterable:
+        if i == n:
+            return e
+        i += 1
+    raise IndexError
+
+
 def nth(iterable, n, default=None):
     """Returns the nth item or a default value"""
     return next(islice(iterable, n, None), default)
@@ -75,6 +84,7 @@ class CollectionDistributionBase(Distribution):
         assert default in collection
         for element in collection:
             assert isinstance(element, collections.Hashable), type(element)
+        assert len(collection) > 0
 
         self._collection = collection
         self.__default = default
@@ -100,12 +110,11 @@ class CollectionDistributionBase(Distribution):
 
     def mutate(self, a):
         assert a in self
-        if len(self) == 1:
-            return None
+        assert len(self) > 0
 
-        collection_without_a = filterfalse(lambda e: e is not a, self._collection)
-        multiplicity_a = sum(1 for _ in collection_without_a)
-        return nth(collection_without_a, random.randint(0, len(self) - 1 - multiplicity_a))
+        collection_without_a = filter(lambda e: e is not a, self._collection)
+        len_collection_without_a = sum(1 for e in self._collection if e is not a)
+        return nth_or_throw(collection_without_a, random.randint(0, len_collection_without_a - 1))
 
     def between(self, a, b):
         super().between(a, b)

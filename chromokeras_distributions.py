@@ -90,7 +90,8 @@ class ReshapeDistribution(CollectionDistribution):
 
     def _compute_collection(self):
         for output_rank in self.ranks:
-            yield tuple(prime_defactorization.defactorize(self.input_size, output_rank))
+            for shape in prime_defactorization.defactorize(self.input_size, output_rank):
+                yield shape
 
     def __eq__(self, other):
         return isinstance(other, ReshapeDistribution) and self.ranks == other.ranks

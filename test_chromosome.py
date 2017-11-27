@@ -159,15 +159,27 @@ class ChromosomeTests(unittest.TestCase):
 
         self.assertIsNotNone(layer)
 
-    def test_simple_reshape(self):
+    def test_reshape_wrong_rank_not_accepted(self):
         builder = ReshapeBuilder(ranks=[1], final_shapes=((10,), (10,)))
-        layer = builder.create(target_shape=(2, ))
 
-        layer = builder.mutate(layer)
+        with self.assertRaises(AssertionError):
+            builder.create(target_shape=(2, 5))
 
-        self.assertIsNotNone(layer)
+    def test_creating_reshape(self):
+        builder = ReshapeBuilder(ranks=[1], final_shapes=((10,), (10,)))
+        allele = builder.create(target_shape=(10, ))
+        self.assertIsNotNone(allele)
+
+    def test_reshape_simple_mutation(self):
+        random.seed(0)
+        builder = ReshapeBuilder(ranks=[2], final_shapes=((12,), (12,)))
+        allele = builder.create(target_shape=(12, 1))
+
+        mutated = builder.mutate(allele)
+
+        self.assertEqual(mutated.parameters['target_shape'], (6, 2))
 
 
 if __name__ == '__main__':
-    ChromosomeTests().test_simple_reshape()
+    ChromosomeTests().test_reshape_simple_mutation()
     unittest.main()

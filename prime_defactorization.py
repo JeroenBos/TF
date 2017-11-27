@@ -208,7 +208,7 @@ def defactorize(n: Union[int, Iterable[int]], combination_length: int):
         return reduce(operator.mul, (primes[i] ** multiplicity for i, multiplicity in enumerate(selection)))
 
     for combination in combine(explicit_multiplicities, combination_length - 1):
-        result = [to_number(powers) for powers in combination]
+        result = tuple(to_number(powers) for powers in combination)
         yield result
 
 
