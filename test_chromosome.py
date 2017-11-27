@@ -186,8 +186,22 @@ class ChromosomeTests(unittest.TestCase):
         distribution = builder.distributions['target_shape'][input_size]
 
         self.assertIn((1, 12), distribution)
+        self.assertIn((12, 1), distribution)
+
+    def test_reshape_negative_rank_derivative(self):
+        random.seed(0)
+        builder = ReshapeBuilder(ranks=[1, 2], final_shapes=((12,), (12,)), rank_derivative_sign=-1)
+
+        allele = builder.create(target_shape=(12,))
+        mutateds = [builder.mutate(allele).parameters['target_shape'] for _ in range(100)]
+
+        self.assertTrue(all(len(m) == 1 for m in mutateds))
+
+
+
+
 
 
 if __name__ == '__main__':
-    ChromosomeTests().test_one_sized_shape_is_in_distribution()
+    ChromosomeTests().test_reshape_negative_rank_derivative()
     unittest.main()
