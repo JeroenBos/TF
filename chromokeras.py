@@ -79,12 +79,6 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
     # used by keras layer that isn't really a layer, e.g. Reshape and Flatten
     is_real_layer = True
 
-    def init_final_shapes(self, final_input_shape, final_output_shape):
-        """
-        This builder is initialized before first usage with the final input and output shapes.
-        """
-        pass
-
     def get_shape_influencing_parameter_names(self):
         """
         Gets the parameters on the ParameterAlleles that influence the output shape.
@@ -201,19 +195,14 @@ class ReshapeBuilder(ChromokerasAlleleBuilder):
             return None  # input is not commensurate with target
         return target_shape
 
-    def init_final_shapes(self, final_input_shape, final_output_shape):
-        assert self.family is None, f'This {__name__} has already been initialized'
-
-        self.family = ReshapeDistributionFamily(self.ranks, final_input_shape, final_output_shape, self.rank_derivative_sign)
-        self.distributions['target_shape'] = self.family
-
-    def __init__(self, ranks: Union[IntegerInterval, int, list, tuple], final_shapes=None, rank_derivative_sign=None):
+    def __init__(self, ranks: Union[IntegerInterval, int, list, tuple], final_shapes, rank_derivative_sign=None):
         super().__init__(Reshape)
+        assert isinstance(final_shapes, tuple) and len(final_shapes) == 2
         self.family = None
         self.ranks = ranks if isinstance(ranks, IntegerInterval) else IntegerInterval(ranks)
         self.rank_derivative_sign = rank_derivative_sign
-        if final_shapes:
-            self.init_final_shapes(*final_shapes)
+        self.family = ReshapeDistributionFamily(self.ranks, *final_shapes, self.rank_derivative_sign)
+        self.distributions['target_shape'] = self.family
 
     def create(self, target_shape, **parameters):
         return super().create(target_shape=target_shape, **parameters)
@@ -231,9 +220,6 @@ class ChromokerasBuilder(ChromosomeBuilder):
         assert isinstance(output_shape, tuple)
         assert len(output_shape) > 0
         assert all(output_shape), 'The output_shape dimensions cannot be None'
-
-        for builder in allele_builders:
-            builder.init_final_shapes(input_shape, output_shape)
 
         self.batch_input_shape = (None,) + input_shape
         self.batch_output_shape = (None,) + output_shape
