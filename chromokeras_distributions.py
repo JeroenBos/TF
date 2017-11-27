@@ -33,14 +33,14 @@ class ReshapeDistributionFamily(DistributionFamily):
         raise AttributeError('This does not exist')
 
     def _create_distribution(self, key):
-        assert isinstance(key, int)  # the key is supposed to be the input_size
-        input_size = key
-        return ReshapeDistribution(self, input_size)
+        assert isinstance(key, tuple) and len(key) == 2  # the key is supposed to be the input_size
+        input_size, rank = key
+        return ReshapeDistribution(self, input_size, rank)
 
     def _get_key(self, input_shape):
         assert isinstance(input_shape, tuple)
 
-        return product(input_shape)
+        return product(input_shape), len(input_shape)
 
     def __contains__(self, element):
         """
@@ -70,9 +70,10 @@ class ReshapeDistribution(CollectionDistribution):
     def get_input_size(allele):
         return product(allele.parameters['target_shape'])
 
-    def __init__(self, family: ReshapeDistributionFamily, input_size: int):
+    def __init__(self, family: ReshapeDistributionFamily, input_size: int, rank: int):
         self.family = family
         self.input_size = input_size
+        self.rank = rank
         collection = list(self._compute_collection())
         super().__init__(collection)
 
@@ -89,9 +90,8 @@ class ReshapeDistribution(CollectionDistribution):
         return self.family.final_output_shape
 
     def _compute_collection(self):
-        for output_rank in self.ranks:
-            for shape in prime_defactorization.defactorize(self.input_size, output_rank):
-                yield shape
+        for shape in prime_defactorization.defactorize(self.input_size, self.rank):
+            yield shape
 
     def __eq__(self, other):
         return isinstance(other, ReshapeDistribution) and self.ranks == other.ranks

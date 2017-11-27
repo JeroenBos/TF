@@ -112,9 +112,15 @@ class CollectionDistributionBase(Distribution):
         assert a in self
         assert len(self) > 0
 
-        collection_without_a = filter(lambda e: e != a, self._collection)
+        assert all([])
+
         len_collection_without_a = sum(1 for e in self._collection if e != a)
-        return nth(collection_without_a, random.randint(0, len_collection_without_a - 1))
+
+        if len_collection_without_a == 0:
+            return None
+        chosen_index = random.randint(0, len_collection_without_a - 1)
+        return nth((e for e in self._collection if e != a), chosen_index)
+
 
     def between(self, a, b):
         super().between(a, b)
