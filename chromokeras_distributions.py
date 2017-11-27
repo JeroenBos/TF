@@ -16,7 +16,7 @@ class ReshapeDistributionFamily(DistributionFamily):
         assert isinstance(ranks, IntegerInterval)
         assert isinstance(final_input_shape, tuple)
         assert isinstance(final_output_shape, tuple)
-        assert rank_derivative_sign in [-1, 0, -1, None]
+        assert rank_derivative_sign in [-1, 0, 1, None]
         # Maybe later I'll add None, meaning it can in fact be bidirectional
 
         self.ranks = ranks
