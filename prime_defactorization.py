@@ -199,10 +199,10 @@ def defactorize(n: Union[int, Iterable[int]], combination_length: int):
     def combine(remaining, rank_remaining):
         if rank_remaining == 0:
             yield tuple(rem[-1] for rem in remaining),
-        # if you don't want to exclude buckets containing 1, remove the call skip_first_and_last
-        for selection in skip_first_and_last(random_dijkstra.all_slotwise_combinations(remaining)):
-            for combi in combine(subtract(remaining, selection), rank_remaining - 1):
-                yield (selection,) + combi
+        else:
+            for selection in random_dijkstra.all_slotwise_combinations(remaining):
+                for combi in combine(subtract(remaining, selection), rank_remaining - 1):
+                    yield (selection,) + combi
 
     def to_number(selection):
         return reduce(operator.mul, (primes[i] ** multiplicity for i, multiplicity in enumerate(selection)))

@@ -177,9 +177,17 @@ class ChromosomeTests(unittest.TestCase):
 
         mutated = builder.mutate(allele)
 
-        self.assertEqual(mutated.parameters['target_shape'], (6, 2))
+        self.assertEqual(mutated.parameters['target_shape'], (3, 4))
+
+    def test_one_sized_shape_is_in_distribution(self):
+        builder = ReshapeBuilder(ranks=[2], final_shapes=((12,), (12,)))
+
+        input_size = 12
+        distribution = builder.distributions['target_shape'][input_size]
+
+        self.assertIn((1, 12), distribution)
 
 
 if __name__ == '__main__':
-    ChromosomeTests().test_reshape_simple_mutation()
+    ChromosomeTests().test_one_sized_shape_is_in_distribution()
     unittest.main()
