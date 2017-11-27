@@ -8,6 +8,7 @@ from functools import reduce
 
 import prime_defactorization
 
+
 from integer_interval_union import IntegerInterval
 
 
@@ -121,7 +122,6 @@ class CollectionDistributionBase(Distribution):
         chosen_index = random.randint(0, len_collection_without_a - 1)
         return nth((e for e in self._collection if e != a), chosen_index)
 
-
     def between(self, a, b):
         super().between(a, b)
 
@@ -168,7 +168,8 @@ class SetDistribution(CollectionDistributionBase):
 
 class DistributionFamily(Distribution):
     def __init__(self):
-        self.__cache: Dict[object, Distribution] = {}  # the object is the family member key, which is ordinary a part of the allele
+        self.__cache: Dict[
+            object, Distribution] = {}  # the object is the family member key, which is ordinary a part of the allele
 
     def __getitem__(self, key):
         """
@@ -194,6 +195,7 @@ class DistributionFamily(Distribution):
         :param element: An element in any of the family distributions of which to return a mutated form.
         """
 
+        # an allele cannot mutate to another branch. That would have to occur through a purely new random allele
         branch = self[self._get_key(element)]
         return branch.mutate(element)
 
@@ -214,7 +216,11 @@ class DistributionFamily(Distribution):
         raise NotImplementedError()
 
     def random(self):
-        raise NotImplementedError()
+        # assumes all branches are present and complete
+        assert len(self.__cache) > 0, 'Can\'t draw random element from empty distribution family'
+
+        from hyperchrom import weighted_choice
+        return weighted_choice(self.__cache.values(), lambda distribution: distribution.get_weight(None))
 
     def _create_distribution(self, key):
         """ A function that creates a new family member, given the key of that member"""
@@ -227,5 +233,3 @@ class DistributionFamily(Distribution):
         :param element: An element in any of the family distributions.
         """
         return element
-
-
