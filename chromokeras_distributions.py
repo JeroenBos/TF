@@ -25,9 +25,6 @@ class ReshapeDistributionFamily(DistributionFamily):
         self.rank_derivative_sign = rank_derivative_sign \
             if rank_derivative_sign else convert_to_rank_derivative_sign(final_input_shape, final_output_shape)
 
-    def random(self):
-        raise NotImplementedError()
-
     @property
     def default(self):
         raise AttributeError('This does not exist')
