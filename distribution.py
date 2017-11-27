@@ -187,6 +187,8 @@ class DistributionFamily(Distribution):
         return a in branch
 
     def between(self, a, b):
+        assert self._get_key(a) == self._get_key(b)
+
         branch = self[self._get_key(a)]
         return branch.between(a, b)
 
