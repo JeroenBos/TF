@@ -11,7 +11,7 @@ class ReshapeDistributionFamily(DistributionFamily):
                  final_input_shape: int,
                  final_output_shape: int,
                  rank_derivative_sign=None):
-        # the family key member is the input_size, the distribution members ais the input_shape (=target_shape)
+        # the family key member is the (input_size, output_ranks), the distribution members are the input_shape (=target_shape)
         super().__init__()
         assert isinstance(ranks, IntegerInterval)
         assert isinstance(final_input_shape, tuple)
@@ -31,13 +31,29 @@ class ReshapeDistributionFamily(DistributionFamily):
 
     def _create_distribution(self, key):
         assert isinstance(key, tuple) and len(key) == 2  # the key is supposed to be the input_size
-        input_size, rank = key
-        return ReshapeDistribution(self, input_size, rank)
+        input_size, ranks = key
+        return ReshapeDistribution(self, input_size, ranks)
 
     def _get_key(self, input_shape):
         assert isinstance(input_shape, tuple)
 
-        return product(input_shape), len(input_shape)
+        return product(input_shape), self._get_output_ranks(input_shape)
+
+    def _get_output_ranks(self, input_rank_or_shape):
+        """ Gets the collection of ranks that can be the direct output rank"""
+
+        input_rank = input_rank_or_shape if isinstance(input_rank_or_shape, int) else len(input_rank_or_shape)
+
+        if self.rank_derivative_sign == 1:
+            allowed_ranks_mask = IntegerInterval((input_rank, 10000))
+        elif self.rank_derivative_sign == 0:
+            allowed_ranks_mask = IntegerInterval(input_rank)
+        elif self.rank_derivative_sign == -1:
+            allowed_ranks_mask = IntegerInterval((0, input_rank))
+        else:
+            allowed_ranks_mask = IntegerInterval((0, 10000))
+
+        return self.ranks.intersection(allowed_ranks_mask)
 
     def __contains__(self, element):
         """
@@ -61,22 +77,23 @@ class ReshapeDistributionFamily(DistributionFamily):
         return f'ReshapeDistributionFamily(ranks={self.ranks}, final_input={self.final_input_shape}, ' \
                f'final_output={self.final_output_shape}, derivative={self.rank_derivative_sign})'
 
+    def get_collection(self, input_shape):
+        allowed_ranks = self._get_output_ranks(input_shape)
+
+        return self[(product(input_shape), allowed_ranks)]
+
 
 class ReshapeDistribution(CollectionDistribution):
     @staticmethod
     def get_input_size(allele):
         return product(allele.parameters['target_shape'])
 
-    def __init__(self, family: ReshapeDistributionFamily, input_size: int, rank: int):
+    def __init__(self, family: ReshapeDistributionFamily, input_size: int, ranks: IntegerInterval):
         self.family = family
+        self.ranks = ranks
         self.input_size = input_size
-        self.rank = rank
         collection = list(self._compute_collection())
         super().__init__(collection)
-
-    @property
-    def ranks(self):
-        return self.family.ranks
 
     @property
     def final_input_shape(self):
@@ -87,8 +104,9 @@ class ReshapeDistribution(CollectionDistribution):
         return self.family.final_output_shape
 
     def _compute_collection(self):
-        for shape in prime_defactorization.defactorize(self.input_size, self.rank):
-            yield shape
+        for rank in self.ranks:
+            for shape in prime_defactorization.defactorize(self.input_size, rank):
+                yield shape
 
     def __eq__(self, other):
         return isinstance(other, ReshapeDistribution) and self.ranks == other.ranks

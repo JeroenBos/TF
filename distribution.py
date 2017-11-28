@@ -79,6 +79,9 @@ class Distribution:
 
         raise NotImplementedError()
 
+    def get_collection(self, input_shape):
+        raise NotImplementedError()
+
 
 class CollectionDistributionBase(Distribution):
     def __init__(self, collection, default):
