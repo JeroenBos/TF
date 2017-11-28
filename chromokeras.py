@@ -107,10 +107,9 @@ class ChromokerasAlleleBuilder(ParameterAlleleBuilder):
         """
         return input_shape
 
-    @classmethod
-    def contains_input_rank(cls, value):
-        assert isinstance(cls.input_rank, IntegerInterval)
-        return value in cls.input_rank
+    def contains_input_rank(self, value):
+        assert isinstance(self.input_rank, IntegerInterval)
+        return value in self.input_rank
 
     def __init__(self, layer_type, **overriding_distributions):
         """
@@ -128,7 +127,11 @@ class DenseBuilder(ChromokerasAlleleBuilder):
     def output_shape(input_shape, units):
         return input_shape[:-1] + (units,)
 
-    def __init__(self, **distributions):
+    def __init__(self, input_rank=IntegerInterval(1), **distributions):
+        """
+        :param input_rank: Indicates the ranks of the layers after which a dense layer may occur. By default only 1.
+        """
+        self.input_rank = input_rank
         super().__init__(Dense, **distributions)
 
 
@@ -139,6 +142,11 @@ class Conv2DBuilder(ChromokerasAlleleBuilder):
                                                             leaky_relu(0.01), leaky_relu(0.1)], default=relu)
                              }
     input_rank = IntegerInterval(3)
+
+    @classmethod
+    def contains_input_rank(cls, value):
+        # noinspection PyArgumentList
+        return super().contains_input_rank(cls, value)
 
     # noinspection PyMethodOverriding
     @staticmethod
@@ -277,7 +285,8 @@ class ChromokerasBuilder(ChromosomeBuilder):
                                                             **dict(zip(relevant_parameters, parameter_combination)))
                         if output_shape is not None:
                             assert isinstance(output_shape, tuple)
-                            yield Node(node.depth + builder.is_real_layer, output_shape, builder)
+                            new_depth = node.depth + builder.is_real_layer
+                            yield Node(new_depth, output_shape, builder)
 
         dijkstra = SemiRandomDijkstraSavingAllRoutes([start],
                                                      get_neighbors=get_all_layers_that_start_on,
