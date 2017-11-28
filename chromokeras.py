@@ -36,7 +36,7 @@ class Node:
         return self.depth == other.depth and self.shape == other.shape
 
     def __repr__(self):
-        return f'node(depth={self.depth}, shape={self.shape}, {"" if self.builder is None else self.builder.layer_type.__name__})'
+        return f'node(depth={self.depth}, shape={self.shape}, {"None" if self.builder is None else self.builder.layer_type.__name__})'
 
 
 _cached_nns = {}
@@ -278,7 +278,7 @@ class ChromokerasBuilder(ChromosomeBuilder):
             for builder in applicable_builders:
                 if builder.contains_input_rank(len(node.shape)):
                     relevant_parameters = builder.get_shape_influencing_parameter_names()
-                    distributions = [builder.distributions[name].get_collection(node.shape) for name in   # TODO: I can probably remove the parameter node.shape again....
+                    distributions = [builder.distributions[name].get_collection(node.shape) for name in
                                      relevant_parameters]
                     for parameter_combination in all_slotwise_combinations(distributions):
                         output_shape = builder.output_shape(node.shape,
