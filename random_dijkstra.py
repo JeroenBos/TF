@@ -239,7 +239,7 @@ class SemiRandomDijkstraSavingAllRoutes(SemiRandomDijkstra):
 
         def compute_multiplicity(node):
             if node not in get_multiplicity:
-                result = 1
+                result = len(self.closed[node])
                 for from_node in self.closed[node]:
                     if from_node is None:
                         break
