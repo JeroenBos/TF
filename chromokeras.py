@@ -11,8 +11,9 @@ from functools import reduce
 from integer_interval_union import IntegerInterval
 from chromokeras_distributions import ReshapeDistributionFamily
 
+
 class Node:
-    def __init__(self, depth, shape, builder):
+    def __init__(self, depth: int, shape: tuple, builder: Optional['ChromokerasAlleleBuilder']):
         self.depth = depth
         self.shape = shape
         self.builder = builder
@@ -35,7 +36,7 @@ class Node:
         return self.depth == other.depth and self.shape == other.shape
 
     def __repr__(self):
-        return f'node(depth={self.depth}, shape={self.shape}, {self.builder})'
+        return f'node(depth={self.depth}, shape={self.shape}, {"" if self.builder is None else self.builder.layer_type.__name__})'
 
 
 _cached_nns = {}
@@ -273,7 +274,7 @@ class ChromokerasBuilder(ChromosomeBuilder):
                                                             **dict(zip(relevant_parameters, parameter_combination)))
                         if output_shape is not None:
                             assert isinstance(output_shape, tuple)
-                            yield Node(node.depth + builder.is_real_layer, output_shape, builder.layer_type.__name__)
+                            yield Node(node.depth + builder.is_real_layer, output_shape, builder)
 
         dijkstra = SemiRandomDijkstraSavingAllRoutes([start],
                                                      get_neighbors=get_all_layers_that_start_on,
