@@ -29,12 +29,21 @@ class RandomWalk:
         return self.open.popitem()
 
     def push(self, current, new):
+        assert new not in self.closed
         self.open[new] = current
 
     def add_edge_to_closed(self, current, new):
         self.closed[new] = current
 
     def update_closed(self, current, new):
+        """
+        Updates a node on the closed list, given that another route to it has been discovered.
+        This is opposite to A*, where you would update the open list;
+        this is about tracking routes, rather than updating G.
+        :param current: The node from which a new route was found.
+        :param new: The node to which a new route was found.
+        :returns whether the new node was already in the closed list.
+        """
         return new in self.closed
 
     def find_route(self):
@@ -53,7 +62,7 @@ class RandomWalk:
             for new in self._get_neighbors(current):
                 assert new, 'Neighbor may not be None'
                 was_already_in_closed = self.update_closed(current, new)
-                if not was_already_in_closed:
+                if not was_already_in_closed and all(new != open_node.new for open_node in self.open):
                     self.push(current, new)
 
     def _generate_result(self, end):
@@ -135,7 +144,7 @@ class SemiRandomDijkstra(RandomWalk):
                 raise IndexError()
 
         def __repr__(self):
-            return f'Node({self.current}->{self.new})'
+            return f'Node({self.new}<-{self.current})'
 
     def __init__(self,
                  start,
@@ -172,6 +181,7 @@ class SemiRandomDijkstraSavingAllRoutes(SemiRandomDijkstra):
     # closed is a dictionary of nodes to, with values a list of nodes from
     class Node(SemiRandomDijkstra.Node):
         def __init__(self, current, new, current_comparable):
+            # current is None means the route starts at new
             super().__init__([current], new, current_comparable)
 
         def append(self, current):
@@ -233,9 +243,10 @@ class SemiRandomDijkstraSavingAllRoutes(SemiRandomDijkstra):
                 for from_node in self.closed[node]:
                     if from_node is None:
                         break
-                    if from_node not in get_multiplicity:
-                        compute_multiplicity(from_node)
-                    result *= get_multiplicity[from_node]
+                    if from_node != node:
+                        if from_node not in get_multiplicity:
+                            compute_multiplicity(from_node)
+                        result *= get_multiplicity[from_node]
                 get_multiplicity[node] = result
 
         while len(get_multiplicity) != len(self.closed):

@@ -193,6 +193,8 @@ class ReshapeBuilder(ChromokerasAlleleBuilder):
         """
         if reduce(operator.mul, input_shape) != reduce(operator.mul, target_shape):
             return None  # input is not commensurate with target
+        if input_shape == target_shape:
+            return None  # this reshape would be the identity function
         return target_shape
 
     def __init__(self, ranks: Union[IntegerInterval, int, list, tuple], rank_derivative_sign=None):
