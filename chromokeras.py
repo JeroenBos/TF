@@ -260,7 +260,10 @@ class ChromokerasBuilder(ChromosomeBuilder):
             if node.depth > end.depth:
                 return
             elif node.depth == end.depth:
-                applicable_builders = filter(lambda b: not b.is_real_layer, self.allele_builders)
+                if node.builder.is_real_layer:
+                    applicable_builders = filter(lambda b: not b.is_real_layer, self.allele_builders)
+                else:
+                    return
             else:
                 applicable_builders = self.allele_builders
 

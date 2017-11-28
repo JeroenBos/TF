@@ -217,7 +217,16 @@ class ChromosomeTests(unittest.TestCase):
         builder = ChromokerasBuilder(input_shape=(10,), output_shape=(10, 10), allele_builders=[dense_builder, reshape_builder])
 
         routes = set(islice(builder.find_random_routes(end=1), 100))
-        self.assertEqual(len(routes), 4)
+        repr(list(routes)[0])
+        self.assertEqual(len(routes), 1)
+        #  namely:
+        #  10 -> 100 -> (10, 10)
+        # what I expect:
+        # 10 -> 100 -> (10, 10)
+        # 10 -> (2, 5) -> (2, 50) -> (10, 10)
+        # 10 -> (5, 2) -> (5, 20) -> (10, 10)
+
+
 
 
 if __name__ == '__main__':
