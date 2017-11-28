@@ -238,3 +238,6 @@ class DistributionFamily(Distribution):
         :param element: An element in any of the family distributions.
         """
         return element
+
+    def get_collection(self, input_shape):
+        raise NotImplementedError()

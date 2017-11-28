@@ -71,9 +71,9 @@ class ReshapeDistributionFamily(DistributionFamily):
         return f'ReshapeDistributionFamily(ranks={self.ranks}, derivative={self.rank_derivative_sign})'
 
     def get_collection(self, input_shape):
-        allowed_ranks = self._get_output_ranks(input_shape)
+        branch = self[self._get_key(input_shape)]
+        return branch.get_collection(input_shape)
 
-        return self[(product(input_shape), allowed_ranks)]
 
 
 class ReshapeDistribution(CollectionDistribution):
