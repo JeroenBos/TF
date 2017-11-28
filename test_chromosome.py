@@ -86,11 +86,11 @@ class ChromosomeTests(unittest.TestCase):
     def test_genome_mutation(self):
         distribution = CollectionDistribution([10, 20, 50, 100])
         allele_builder = c.ParameterAlleleBuilder(keras.layers.Dense, units=distribution)
+        genome_builder = c.GenomeBuilder(c.ChromosomeBuilder([allele_builder]), large_mutation_probability=0)
         allele = allele_builder.create(units=10)
         chromosome = c.Chromosome.create([allele])
         genome = c.Genome.create([chromosome])
 
-        genome_builder = c.GenomeBuilder(c.ChromosomeBuilder([allele_builder]), large_mutation_probability=0)
         mutated_genome = genome_builder.mutate(genome)
 
         self.assertIsNot(genome, mutated_genome)
@@ -210,8 +210,16 @@ class ChromosomeTests(unittest.TestCase):
         self.assertTrue(any(len(m) in [2] for m in mutateds))
         self.assertTrue(any(len(m) in [3] for m in mutateds))
 
+    def test_genome_reshape_mutation(self):
+        random.seed(5)
+        dense_builder = DenseBuilder(units=CollectionDistribution([10, 20, 50, 100]))
+        reshape_builder = ReshapeBuilder([1, 2], 1)
+        builder = ChromokerasBuilder(input_shape=(10,), output_shape=(10, 10), allele_builders=[dense_builder, reshape_builder])
+
+        routes = set(islice(builder.find_random_routes(end=1), 100))
+        self.assertEqual(len(routes), 4)
 
 
 if __name__ == '__main__':
-    ChromosomeTests().test_one_sized_shape_is_in_distribution()
+    ChromosomeTests().test_genome_reshape_mutation()
     unittest.main()
