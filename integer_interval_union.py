@@ -96,5 +96,9 @@ class IntegerInterval:
                 return other == self
         return False
 
+    def __hash__(self):
+        # noinspection PyTypeChecker
+        return hash(self.interval) if not isinstance(self.interval, list) else sum(i for i in self.interval)
+
 
 IntegerInterval.empty = IntegerInterval([])
