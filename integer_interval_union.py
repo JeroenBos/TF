@@ -10,6 +10,7 @@ class IntegerInterval:
         assert isinstance(interval, (int, list, tuple))
         assert isinstance(interval, int) or all(isinstance(val, int) for val in iter(interval))
         assert isinstance(interval, (int, list)) or (len(interval) == 2 and interval[0] <= interval[1])
+        assert isinstance(interval, (int, tuple)) or list(sorted(interval)) == interval
 
         self.__interval = interval
 
@@ -26,6 +27,14 @@ class IntegerInterval:
     def interval(self):
         return self.__interval
 
+    def __len__(self):
+        if isinstance(self.interval, int):
+            return 1
+        elif isinstance(self.interval, list):
+            return len(self.interval)
+        else:
+            return self.interval[1] - self.interval[0] + 1  # 1 for upper bound being inclusive
+
     def __iter__(self):
         if isinstance(self.interval, int):
             return iter([self.interval])
@@ -41,6 +50,51 @@ class IntegerInterval:
             return repr(self.interval)
 
         return f'[{self.interval[0]}...{self.interval[1]}]'
+
+    def intersection(self, other):
+        assert isinstance(other, IntegerInterval)
+
+        if isinstance(self.interval, int):
+            if self.interval in other:
+                return self
+            else:
+                return __class__.empty
+        elif isinstance(self.interval, list):
+            if isinstance(other.interval, int):
+                return other.intersection(self)
+            else:  # noinspection PyTypeChecker
+                return IntegerInterval([i for i in self.interval if i in other])
+        else:
+            if not isinstance(other.interval, tuple):
+                return other.intersection(self)
+            else:
+                min_ = max(self.interval[0], other.interval[0])
+                max_ = min(self.interval[1], other.interval[1])  # inclusive
+                if max_ < min_:
+                    return __class__.empty
+                else:
+                    return IntegerInterval((min_, max_))
+
+    def __eq__(self, other):
+        assert isinstance(other, IntegerInterval)
+
+        if self.interval == other.interval:
+            return True
+        if len(self) != len(other):
+            return False
+
+        if isinstance(self.interval, int):
+            if isinstance(other.interval, list):
+                return self.interval == other.interval[0]
+            elif isinstance(other.interval, tuple):
+                return self.interval == other.interval[0]
+        elif isinstance(self.interval, list):
+            if isinstance(other.interval, tuple):
+                return all(elem in other.interval for elem in self)
+        else:
+            if isinstance(other.interval, list):
+                return other == self
+        return False
 
 
 IntegerInterval.empty = IntegerInterval([])
