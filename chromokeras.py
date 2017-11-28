@@ -195,13 +195,12 @@ class ReshapeBuilder(ChromokerasAlleleBuilder):
             return None  # input is not commensurate with target
         return target_shape
 
-    def __init__(self, ranks: Union[IntegerInterval, int, list, tuple], final_shapes, rank_derivative_sign=None):
+    def __init__(self, ranks: Union[IntegerInterval, int, list, tuple], rank_derivative_sign=None):
         super().__init__(Reshape)
-        assert isinstance(final_shapes, tuple) and len(final_shapes) == 2
         self.family = None
         self.ranks = ranks if isinstance(ranks, IntegerInterval) else IntegerInterval(ranks)
         self.rank_derivative_sign = rank_derivative_sign
-        self.family = ReshapeDistributionFamily(self.ranks, *final_shapes, self.rank_derivative_sign)
+        self.family = ReshapeDistributionFamily(self.ranks, self.rank_derivative_sign)
         self.distributions['target_shape'] = self.family
 
     def create(self, target_shape, **parameters):

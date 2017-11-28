@@ -1,6 +1,6 @@
 from typing import *
 import prime_defactorization
-from distribution import DistributionFamily, convert_to_rank_derivative_sign, CollectionDistribution
+from distribution import DistributionFamily, CollectionDistribution
 from hyperchrom import product
 from integer_interval_union import IntegerInterval
 
@@ -8,22 +8,16 @@ from integer_interval_union import IntegerInterval
 class ReshapeDistributionFamily(DistributionFamily):
     def __init__(self,
                  ranks: IntegerInterval,
-                 final_input_shape: int,
-                 final_output_shape: int,
                  rank_derivative_sign=None):
         # the family key member is the (input_size, output_ranks), the distribution members are the input_shape (=target_shape)
         super().__init__()
         assert isinstance(ranks, IntegerInterval)
-        assert isinstance(final_input_shape, tuple)
-        assert isinstance(final_output_shape, tuple)
+        assert len(ranks) > 0
         assert rank_derivative_sign in [-1, 0, 1, None]
         # Maybe later I'll add None, meaning it can in fact be bidirectional
 
         self.ranks = ranks
-        self.final_input_shape = final_input_shape
-        self.final_output_shape = final_output_shape
-        self.rank_derivative_sign = rank_derivative_sign \
-            if rank_derivative_sign else convert_to_rank_derivative_sign(final_input_shape, final_output_shape)
+        self.rank_derivative_sign = rank_derivative_sign
 
     @property
     def default(self):
@@ -74,8 +68,7 @@ class ReshapeDistributionFamily(DistributionFamily):
         return len(element) in self.ranks and super().__contains__(element)
 
     def __repr__(self):
-        return f'ReshapeDistributionFamily(ranks={self.ranks}, final_input={self.final_input_shape}, ' \
-               f'final_output={self.final_output_shape}, derivative={self.rank_derivative_sign})'
+        return f'ReshapeDistributionFamily(ranks={self.ranks}, derivative={self.rank_derivative_sign})'
 
     def get_collection(self, input_shape):
         allowed_ranks = self._get_output_ranks(input_shape)
@@ -94,14 +87,6 @@ class ReshapeDistribution(CollectionDistribution):
         self.input_size = input_size
         collection = list(self._compute_collection())
         super().__init__(collection)
-
-    @property
-    def final_input_shape(self):
-        return self.family.final_input_shape
-
-    @property
-    def final_output_shape(self):
-        return self.family.final_output_shape
 
     def _compute_collection(self):
         for rank in self.ranks:

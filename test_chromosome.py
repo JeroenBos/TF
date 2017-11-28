@@ -154,25 +154,25 @@ class ChromosomeTests(unittest.TestCase):
         self.assertFalse(Conv2DBuilder.contains_input_rank(4))
 
     def test_create_simple_reshape(self):
-        builder = ReshapeBuilder(ranks=[1, 2], final_shapes=((10,), (10,)))
+        builder = ReshapeBuilder(ranks=[1, 2])
         layer = builder.create(target_shape=(2, 5))
 
         self.assertIsNotNone(layer)
 
     def test_reshape_wrong_rank_not_accepted(self):
-        builder = ReshapeBuilder(ranks=[1], final_shapes=((10,), (10,)))
+        builder = ReshapeBuilder(ranks=[1])
 
         with self.assertRaises(AssertionError):
             builder.create(target_shape=(2, 5))
 
     def test_creating_reshape(self):
-        builder = ReshapeBuilder(ranks=[1], final_shapes=((10,), (10,)))
+        builder = ReshapeBuilder(ranks=[1])
         allele = builder.create(target_shape=(10, ))
         self.assertIsNotNone(allele)
 
     def test_reshape_simple_mutation(self):
         random.seed(0)
-        builder = ReshapeBuilder(ranks=[2], final_shapes=((12,), (12,)))
+        builder = ReshapeBuilder(ranks=[2])
         allele = builder.create(target_shape=(12, 1))
 
         mutated = builder.mutate(allele)
@@ -180,7 +180,7 @@ class ChromosomeTests(unittest.TestCase):
         self.assertEqual(mutated.parameters['target_shape'], (3, 4))
 
     def test_one_sized_shape_is_in_distribution(self):
-        builder = ReshapeBuilder(ranks=[2], final_shapes=((12,), (12,)))
+        builder = ReshapeBuilder(ranks=[2])
 
         input_size, rank = 12, IntegerInterval(2)
         distribution = builder.distributions['target_shape'][input_size, rank]
@@ -190,7 +190,7 @@ class ChromosomeTests(unittest.TestCase):
 
     def test_reshape_negative_rank_derivative(self):
         random.seed(0)
-        builder = ReshapeBuilder(ranks=[1, 2, 3], final_shapes=((12,), (12,)), rank_derivative_sign=-1)
+        builder = ReshapeBuilder(ranks=[1, 2, 3], rank_derivative_sign=-1)
 
         allele = builder.create(target_shape=(12, 1))
         mutateds = [builder.mutate(allele).parameters['target_shape'] for _ in range(100)]
@@ -201,7 +201,7 @@ class ChromosomeTests(unittest.TestCase):
 
     def test_reshape_positive_rank_derivative(self):
         random.seed(0)
-        builder = ReshapeBuilder(ranks=[1, 2, 3], final_shapes=((12,), (12,)), rank_derivative_sign=1)
+        builder = ReshapeBuilder(ranks=[1, 2, 3], rank_derivative_sign=1)
 
         allele = builder.create(target_shape=(12, 1))
         mutateds = [builder.mutate(allele).parameters['target_shape'] for _ in range(100)]
