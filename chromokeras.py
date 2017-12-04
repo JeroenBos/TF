@@ -285,17 +285,6 @@ class ChromokerasBuilder(ChromosomeBuilder):
             end = Node(end, self.batch_output_shape[1:], None)
 
         def get_all_layers_that_start_on(node: Node):
-            # I want that:
-            # only one fake layer can be applied consecutively
-            # one fake layer can be applied after a real layer and the deepest depth
-
-            # Problem: The first node at a location is basically randomly real or not, and
-            # if the first is real, then all fake layers in between are used, and vice versa
-
-            # solution: always yield all layers, even the non-real ones. But then we may end in an infinite loop of unreal after unreal layer.....
-            # this solution would even require modification afterwards so that no fake->fake route could be selected
-
-            # a nice solution would be to find all real layers first...
             if node.depth > end.depth or (node.depth == end.depth and not node.is_real_layer):
                 return
             if node.is_real_layer:
@@ -316,6 +305,8 @@ class ChromokerasBuilder(ChromosomeBuilder):
                             new_depth = node.depth + builder.is_real_layer
                             yield Node(new_depth, output_shape, builder)
 
+        # find all real layers first such that the function get_all_layers can choose the
+        # builder of real or both real and fake layers
         def get_comparable(node):
             return -node.depth - (10000 if node.is_real_layer else 0)
 
