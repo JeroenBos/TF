@@ -221,7 +221,9 @@ class ReshapeBuilder(ChromokerasAlleleBuilder):
     def __init__(self, ranks: Union[IntegerInterval, int, list, tuple], rank_derivative_sign=None):
         super().__init__(Reshape)
         self.family = None
-        self.ranks = ranks if isinstance(ranks, IntegerInterval) else IntegerInterval(ranks)
+        if isinstance(ranks, tuple) and ranks[0] > ranks[1]:
+            ranks = ranks[1], ranks[0]
+        self.ranks = ranks if isinstance(ranks, IntegerInterval) else IntegerInterval(ranks) if isinstance(ranks, )
         self.rank_derivative_sign = rank_derivative_sign
         self.family = ReshapeDistributionFamily(self.ranks, self.rank_derivative_sign)
         self.distributions['target_shape'] = self.family

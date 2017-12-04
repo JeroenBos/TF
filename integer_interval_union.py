@@ -7,10 +7,14 @@ class IntegerInterval:
         """
         :param interval: A number, list, or range (by tuple, upperbound inclusive)
         """
+
         assert isinstance(interval, (int, list, tuple))
         assert isinstance(interval, int) or all(isinstance(val, int) for val in iter(interval))
-        assert isinstance(interval, (int, list)) or (len(interval) == 2 and interval[0] <= interval[1])
+        assert isinstance(interval, (int, list)) or len(interval) == 2
         assert isinstance(interval, (int, tuple)) or list(sorted(interval)) == interval
+
+        if isinstance(interval, tuple) and interval[0] > interval[1]:
+            interval = interval[1], interval[0]
 
         self.__interval = interval
 
