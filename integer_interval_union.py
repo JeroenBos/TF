@@ -45,7 +45,7 @@ class IntegerInterval:
         if isinstance(self.interval, list):
             return iter(self.interval)
 
-        return range(self.interval[0], self.interval[1] + 1)
+        return iter(range(self.interval[0], self.interval[1] + 1))
 
     def __repr__(self):
         if isinstance(self.interval, int):
