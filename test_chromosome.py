@@ -211,24 +211,23 @@ class ChromosomeTests(unittest.TestCase):
         self.assertTrue(any(len(m) in [3] for m in mutateds))
 
     def test_genome_reshape_mutation(self):
-        random.seed(5)
-        dense_builder = DenseBuilder(units=CollectionDistribution([10, 20, 50, 100]))
+        random.seed(6)
+        dense_builder = DenseBuilder(units=CollectionDistribution([10, 20, 50, 100]), input_rank=IntegerInterval([1, 2]))
         reshape_builder = ReshapeBuilder([1, 2], 1)
         builder = ChromokerasBuilder(input_shape=(10,), output_shape=(10, 10), allele_builders=[dense_builder, reshape_builder])
 
-        routes = set(islice(builder.find_random_routes(end=1), 100))
-        repr(list(routes)[0])
-        self.assertEqual(len(routes), 1)
+        routes = set(islice(builder.find_random_routes(end=1), 1000))
+        self.assertEqual(len(routes), 5)
         #  namely:
-        #  10 -> 100 -> (10, 10)
-        # what I expect:
         # 10 -> 100 -> (10, 10)
         # 10 -> (2, 5) -> (2, 50) -> (10, 10)
         # 10 -> (5, 2) -> (5, 20) -> (10, 10)
+        # 10 -> (10, 1) -> (10, 10)
+        # 10 -> (1, 10) -> (1, 100) -> (10, 10)
 
 
 
 
 if __name__ == '__main__':
-    ChromosomeTests().test_genome_reshape_mutation()
+    # ChromosomeTests().test_find_only_flatten_dense_possibility()
     unittest.main()

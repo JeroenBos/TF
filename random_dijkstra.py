@@ -208,7 +208,7 @@ class SemiRandomDijkstraSavingAllRoutes(SemiRandomDijkstra):
         """
         return self.closed[end][0]
 
-    def find_random_routes(self):
+    def find_random_routes(self, fold=None):
         """
         Returns random routes from start nodes to destination nodes, ad infinitum.
         """
@@ -216,6 +216,10 @@ class SemiRandomDijkstraSavingAllRoutes(SemiRandomDijkstra):
         if len(self.closed) == 0 or len(self.open) != 0:
             for _ in self.find_route():
                 pass
+
+        if fold:
+            for node in self.open:
+                fold(node)
 
         multiplicities = self._get_all_closed_multiplicities()
         destinations = list(filter(self._is_dest, self.closed.keys()))

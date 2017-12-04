@@ -18,6 +18,10 @@ class Node:
         self.shape = shape
         self.builder = builder
 
+    @property
+    def is_real_layer(self):
+        return self.builder.is_real_layer if self.builder else True
+
     def __getitem__(self, item):
         if item == 0:
             return self.depth
@@ -29,11 +33,11 @@ class Node:
             raise IndexError()
 
     def __hash__(self):
-        return hash((self.depth, self.shape))
+        return hash((self.depth, self.shape, self.is_real_layer))
 
     def __eq__(self, other: 'Node'):
         # builder is not taken into account: it's the value; not the key
-        return self.depth == other.depth and self.shape == other.shape
+        return self.depth == other.depth and self.shape == other.shape # and self.is_real_layer == other.is_real_layer
 
     def __repr__(self):
         return f'node(depth={self.depth}, shape={self.shape}, {"None" if self.builder is None else self.builder.layer_type.__name__})'
@@ -265,15 +269,23 @@ class ChromokerasBuilder(ChromosomeBuilder):
             end = Node(end, self.batch_output_shape[1:], None)
 
         def get_all_layers_that_start_on(node: Node):
-            if node.depth > end.depth:
+            # I want that:
+            # only one fake layer can be applied consecutively
+            # one fake layer can be applied after a real layer and the deepest depth
+
+            # Problem: The first node at a location is basically randomly real or not, and
+            # if the first is real, then all fake layers in between are used, and vice versa
+
+            # solution: always yield all layers, even the non-real ones. But then we may end in an infinite loop of unreal after unreal layer.....
+            # this solution would even require modification afterwards so that no fake->fake route could be selected
+
+            # a nice solution would be to find all real layers first...
+            if node.depth > end.depth or (node.depth == end.depth and not node.is_real_layer):
                 return
-            elif node.depth == end.depth:
-                if node.builder.is_real_layer:
-                    applicable_builders = filter(lambda b: not b.is_real_layer, self.allele_builders)
-                else:
-                    return
-            else:
+            if node.is_real_layer:
                 applicable_builders = self.allele_builders
+            else:
+                applicable_builders = filter(lambda b: b.is_real_layer, self.allele_builders)
 
             for builder in applicable_builders:
                 if builder.contains_input_rank(len(node.shape)):
@@ -288,12 +300,19 @@ class ChromokerasBuilder(ChromosomeBuilder):
                             new_depth = node.depth + builder.is_real_layer
                             yield Node(new_depth, output_shape, builder)
 
+        def get_comparable(node):
+            return -node.depth - (10000 if node.is_real_layer else 0)
+
         dijkstra = SemiRandomDijkstraSavingAllRoutes([start],
                                                      get_neighbors=get_all_layers_that_start_on,
                                                      f_is_dest=lambda node: node.depth == end.depth
                                                                             and node.shape == end.shape,
-                                                     get_comparable=lambda node: -node.depth)
-        return dijkstra.find_random_routes()
+                                                     get_comparable=get_comparable)
+
+        def fold(node: Node):
+            node.equal_even_is_layer_reality_arent = True
+
+        return dijkstra.find_random_routes(fold)
 
     def _determine_layer_output_rank(self, input_rank, layer_count):
         final_output_rank = len(self.batch_output_shape) - 1
