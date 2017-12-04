@@ -221,9 +221,7 @@ class ReshapeBuilder(ChromokerasAlleleBuilder):
     def __init__(self, ranks: Union[IntegerInterval, int, list, tuple], rank_derivative_sign=None):
         super().__init__(Reshape)
         self.family = None
-        if isinstance(ranks, tuple) and ranks[0] > ranks[1]:
-            ranks = ranks[1], ranks[0]
-        self.ranks = ranks if isinstance(ranks, IntegerInterval) else IntegerInterval(ranks) if isinstance(ranks, )
+        self.ranks = ranks if isinstance(ranks, IntegerInterval) else IntegerInterval(ranks)
         self.rank_derivative_sign = rank_derivative_sign
         self.family = ReshapeDistributionFamily(self.ranks, self.rank_derivative_sign)
         self.distributions['target_shape'] = self.family
@@ -236,8 +234,16 @@ class ReshapeBuilder(ChromokerasAlleleBuilder):
 
 
 class ChromokerasBuilder(ChromosomeBuilder):
-    def __init__(self, input_shape, output_shape, allele_builders: Iterable[ChromokerasAlleleBuilder]):
-        super().__init__(allele_builders)
+    @staticmethod
+    def _get_default_allele_builders(input_shape, output_shape):
+        ranks_interval = IntegerInterval((len(input_shape), len(output_shape)))
+        return [ReshapeBuilder(ranks_interval),
+                DenseBuilder(ranks_interval),
+                FlattenBuilder(),
+                Conv2DBuilder()]
+
+    def __init__(self, input_shape, output_shape, allele_builders: Iterable[ChromokerasAlleleBuilder]=None):
+        super().__init__(allele_builders or __class__._get_default_allele_builders(input_shape, output_shape))
         assert isinstance(input_shape, tuple)
         assert len(input_shape) > 0
         assert all(input_shape), 'The input_shape dimensions cannot be None'
