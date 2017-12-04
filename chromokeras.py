@@ -46,6 +46,12 @@ class Node:
 _cached_nns = {}
 
 
+def sequence_equals_with_ones_in_between(seq1, seq2):
+    """ Returns whether the specified sequences are equal, except that one may have extra 1's in the sequence. """
+
+    return all(item1 == item2 for item1, item2 in zip(filter(lambda i: i != 1, seq1), filter(lambda i: i != 1, seq2)))
+
+
 def leaky_relu(alpha):
     assert alpha >= 0
     return lambda x: relu(x, alpha)
@@ -208,6 +214,8 @@ class ReshapeBuilder(ChromokerasAlleleBuilder):
             return None  # input is not commensurate with target
         if input_shape == target_shape:
             return None  # this reshape would be the identity function
+        if sequence_equals_with_ones_in_between(input_shape, target_shape):
+            return None  # this would still be the identity function (in that ℕ² ⊂ ℕ³)
         return target_shape
 
     def __init__(self, ranks: Union[IntegerInterval, int, list, tuple], rank_derivative_sign=None):
