@@ -274,13 +274,15 @@ class ChromokerasBuilder(ChromosomeBuilder):
             result.append(new_layer)
             result.extend(self.generate_postfix_layers(new_layer, **kwargs))
 
-    def find_random_routes(self, end: Union[Node, int]):
+    def find_random_routes(self, end: Union[Node, int], start: Node=None):
         """
         Returns random routes from start nodes to destination nodes, ad infinitum.
+        :param start: Optionally the start from which the routes start.
         :param end: The node at which the random route ends, or the depth of the layer at which all routes end
         """
         assert isinstance(end, (Node, int))
-        start = Node(0, self.batch_input_shape[1:], None)
+        assert isinstance(start, Node) or start is None
+        start = start or Node(0, self.batch_input_shape[1:], None)
         if isinstance(end, int):
             end = Node(end, self.batch_output_shape[1:], None)
 
