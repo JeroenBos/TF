@@ -316,10 +316,7 @@ class ChromokerasBuilder(ChromosomeBuilder):
                                                                             and node.shape == end.shape,
                                                      get_comparable=get_comparable)
 
-        def fold(node: Node):
-            node.equal_even_is_layer_reality_arent = True
-
-        return dijkstra.find_random_routes(fold)
+        return dijkstra.find_random_routes()
 
     def _determine_layer_output_rank(self, input_rank, layer_count):
         final_output_rank = len(self.batch_output_shape) - 1
