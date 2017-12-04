@@ -261,18 +261,7 @@ class ChromokerasBuilder(ChromosomeBuilder):
         assert isinstance(layer_count, int) and layer_count >= 2, 'There must be at least 2 layers'
         del kwargs['layer_count']
 
-        result = []
-        while len(result) != layer_count:
-            input_rank = self.get_rank(result[-1]) if len(result) != 0 else len(self.batch_input_shape) - 1
-
-            potential_builders = [builder for builder in self.allele_builders if
-                                  builder.contains_input_rank(input_rank)]
-            builder = random.choice(potential_builders)
-            new_layer = builder.create_random()
-
-            result.extend(self.generate_infix_layers(result[-1] if len(result) > 0 else None, new_layer, **kwargs))
-            result.append(new_layer)
-            result.extend(self.generate_postfix_layers(new_layer, **kwargs))
+        NotImplementedError()
 
     def find_random_routes(self, end: Union[Node, int], start: Node=None):
         """
@@ -319,34 +308,6 @@ class ChromokerasBuilder(ChromosomeBuilder):
                                                      get_comparable=get_comparable)
 
         return dijkstra.find_random_routes()
-
-    def _determine_layer_output_rank(self, input_rank, layer_count):
-        final_output_rank = len(self.batch_output_shape) - 1
-        if input_rank > final_output_rank:
-            if final_output_rank != 1:
-                raise NotImplementedError()
-
-            # flatten with a uniform probability per layer:
-            if random.randint(0, layer_count) == 0:
-                return 1
-            else:
-                return input_rank
-
-        if input_rank < final_output_rank:
-            pass
-
-    @staticmethod
-    def get_rank(layer):
-        raise NotImplementedError()
-
-    def create_flatten_layer(self):
-        return
-
-    def generate_postfix_layers(self, _layer_before, _rank_derivative_sign=None):
-        """
-        :return: an iterable of layers. May be empty.
-        """
-        return iter([])
 
     def mutate_large(self, chromosome: Chromosome):
         pass
