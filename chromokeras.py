@@ -13,10 +13,12 @@ from chromokeras_distributions import ReshapeDistributionFamily
 
 
 class Node:
-    def __init__(self, depth: int, shape: tuple, builder: Optional['ChromokerasAlleleBuilder']):
+    def __init__(self, depth: int, shape: tuple, builder: Optional['ChromokerasAlleleBuilder'],
+                 builder_parameters: Optional[Dict]):
         self.depth = depth
         self.shape = shape
         self.builder = builder
+        self.builder_parameters = builder_parameters
 
     @property
     def is_real_layer(self):
@@ -257,13 +259,23 @@ class ChromokerasBuilder(ChromosomeBuilder):
     def generate(self, **kwargs):
         assert all(kwarg in ['layer_count', 'rank_derivative_sign'] for kwarg in kwargs)
 
-        layer_count = kwargs['layer_count'] if 'layer_count' in kwargs else 2
-        assert isinstance(layer_count, int) and layer_count >= 2, 'There must be at least 2 layers'
-        del kwargs['layer_count']
+        try:
+            layer_count = kwargs['layer_count']
+            assert isinstance(layer_count, int) and layer_count >= 2, 'There must be at least 2 layers'
+            del kwargs['layer_count']
+        except KeyError:
+            layer_count = 2
 
-        NotImplementedError()
+        result = []
+        shape_determining_nodes = next(iter(self.find_random_routes(layer_count)))
+        for node in shape_determining_nodes:
+            builder = node.builder
+            if builder is not None:
+                result.append(builder.generate(**node.builder_parameters))
 
-    def find_random_routes(self, end: Union[Node, int], start: Node=None):
+        return Chromosome.create(result)
+
+    def find_random_routes(self, end: Union[Node, int], start: Node=None) -> Iterable[Tuple[Node]]:
         """
         Returns random routes from start nodes to destination nodes, ad infinitum.
         :param start: Optionally the start from which the routes start.
@@ -271,9 +283,9 @@ class ChromokerasBuilder(ChromosomeBuilder):
         """
         assert isinstance(end, (Node, int))
         assert isinstance(start, Node) or start is None
-        start = start or Node(0, self.batch_input_shape[1:], None)
+        start = start or Node(0, self.batch_input_shape[1:], None, None)
         if isinstance(end, int):
-            end = Node(end, self.batch_output_shape[1:], None)
+            end = Node(end, self.batch_output_shape[1:], None, None)
 
         def get_all_layers_that_start_on(node: Node):
             if node.depth > end.depth or (node.depth == end.depth and not node.is_real_layer):
@@ -289,12 +301,12 @@ class ChromokerasBuilder(ChromosomeBuilder):
                     distributions = [builder.distributions[name].get_collection(node.shape) for name in
                                      relevant_parameters]
                     for parameter_combination in all_slotwise_combinations(distributions):
-                        output_shape = builder.output_shape(node.shape,
-                                                            **dict(zip(relevant_parameters, parameter_combination)))
+                        parameter_combination_dict = dict(zip(relevant_parameters, parameter_combination))
+                        output_shape = builder.output_shape(node.shape, **parameter_combination_dict)
                         if output_shape is not None:
                             assert isinstance(output_shape, tuple)
                             new_depth = node.depth + builder.is_real_layer
-                            yield Node(new_depth, output_shape, builder)
+                            yield Node(new_depth, output_shape, builder, parameter_combination_dict )
 
         # find all real layers first such that the function get_all_layers can choose the
         # builder of real or both real and fake layers

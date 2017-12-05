@@ -257,11 +257,15 @@ class ParameterAlleleBuilder(AlleleBuilder):
             result[key] = distribution.between(a.parameters[key], b.parameters[key])
         return ParameterAllele.create(self, self.layer_type, **result)
 
-    def generate(self):
+    def generate(self, **parameters):
         """
         Draws a random element from this distribution.
+        :param parameters: Optionally some already specified parameters.
         """
-        parameters = {name: distribution.random() for name, distribution in self.distributions.items()}
+        for name, distribution in self.distributions.items():
+            if name not in parameters:
+                parameters[name] = distribution.random()
+
         return ParameterAllele.create(self, self.layer_type, **parameters)
 
     def default(self):

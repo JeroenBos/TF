@@ -225,8 +225,14 @@ class ChromosomeTests(unittest.TestCase):
 
         # TODO: find out whether the output_shape of flatten is (x,) or x. And see if that interferes with Reshape
 
+    def test_generate_chromosome_by_default_chromokerasbuilder(self):
+        random.seed(1)
+        result = ChromokerasBuilder((10, ), (10, 10)).generate()
+
+        self.assertIsInstance(result, Chromosome)
+
 
 
 if __name__ == '__main__':
-    # ChromosomeTests().test_find_only_flatten_dense_possibility()
-    unittest.main()
+    ChromosomeTests().test_generate_chromosome_by_default_chromokerasbuilder()
+    # unittest.main()
